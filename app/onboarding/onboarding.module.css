@@ -1,0 +1,53 @@
+.container {
+  font-family: Arial, sans-serif;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  width: 80%;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.logo {
+  font-size: 2em;
+  color: #007bff;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 1.8em;
+  color: #333;
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.input, .select, .button {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1em;
+}
+
+.button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.button:hover {
+  background-color: #0056b3;
+}
+
+.progress {
+  text-align: center;
+  margin-top: 20px;
+  color: #777;
+}
