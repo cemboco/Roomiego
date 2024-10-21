@@ -7,6 +7,8 @@ import Link from "next/link"
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/components/ui/use-toast"
+import { Toaster } from "@/components/ui/toast"
 
 export default function Signup() {
   const [fullName, setFullName] = useState("")
@@ -15,6 +17,7 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
   const router = useRouter()
+  const { toast, showToast } = useToast()
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,7 +36,11 @@ export default function Signup() {
         }
       })
       if (error) throw error
-      router.push("/login")
+      showToast({
+        title: "Account created successfully!",
+        description: "Please complete the onboarding process.",
+      })
+      router.push("/onboarding/1")
     } catch (error: any) {
       setError(error.message)
     }
@@ -89,6 +96,7 @@ export default function Signup() {
           Already have an account? <Link href="/login" className="text-secondary hover:underline">Log in here</Link>
         </div>
       </div>
+      <Toaster toast={toast} />
     </main>
   )
 }
