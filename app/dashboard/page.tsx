@@ -1,93 +1,64 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import Image from "next/image"
+import { supabase } from "@/lib/supabase"
+import styles from './onboarding.module.css'
 
-export default function Dashboard() {
-  const [user, setUser] = useState<any>(null)
-  const [fullName, setFullName] = useState("")
-  const [loading, setLoading] = useState(true)
-  const [updateMessage, setUpdateMessage] = useState("")
+export default function OnboardingStep1() {
+  const [householdName, setHouseholdName] = useState("")
   const router = useRouter()
 
   useEffect(() => {
-    const getUser = async () => {
+    const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      setFullName(user?.user_metadata?.full_name || "")
-      setLoading(false)
+      if (!user) {
+        router.push("/")
+      }
     }
-    getUser()
-  }, [])
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push("/login")
-  }
+    checkAuth()
+  }, [router])
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const { error } = await supabase.auth.updateUser({
-        data: { full_name: fullName }
-      })
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("No user found")
+
+      const { data, error } = await supabase
+        .from('households')
+        .insert([{ name: householdName, created_by: user.id }])
+        .select()
       if (error) throw error
-      setUpdateMessage("Profile updated successfully!")
+      
+      await supabase
+        .from('user_households')
+        .insert([{ user_id: user.id, household_id: data[0].id }])
+
+      router.push("/onboarding/2")
     } catch (error: any) {
-      setUpdateMessage(`Error updating profile: ${error.message}`)
+      console.error("Error:", error.message)
+      // Here you might want to show an error message to the user
     }
-  }
-
-  if (loading) {
-    return <div>Loading...</div>
-  }
-
-  if (!user) {
-    router.push("/login")
-    return null
   }
 
   return (
-    <div className="min-h-screen bg-accent p-4">
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-primary mb-6">Welcome to your Dashboard, {user.user_metadata.full_name}!</h1>
-        
-        {user.user_metadata.avatar_url && (
-          <div className="mb-4">
-            <Image 
-              src={user.user_metadata.avatar_url} 
-              alt="Profile Picture" 
-              width={100} 
-              height={100} 
-              className="rounded-full"
-            />
-          </div>
-        )}
-        
-        <p className="text-lg text-primary mb-4">Email: {user.email}</p>
-        
-        <form onSubmit={handleUpdateProfile} className="mb-6">
-          <Input 
-            type="text" 
-            value={fullName} 
-            onChange={(e) => setFullName(e.target.value)} 
-            placeholder="Full Name" 
-            className="mb-4"
-          />
-          <Button type="submit" className="bg-secondary hover:bg-secondary/90 text-white mr-4">
-            Update Profile
-          </Button>
-          {updateMessage && <span className="text-sm text-primary">{updateMessage}</span>}
-        </form>
-
-        <Button onClick={handleSignOut} className="bg-danger hover:bg-danger/90 text-white">
-          Sign Out
-        </Button>
-      </div>
+    <div className={styles.container}>
+      <div className={styles.logo}>Roomie</div>
+      <h1 className={styles.title}>Willkommen bei Roomie!</h1>
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <input
+          type="text"
+          placeholder="Gib deinem Haushalt einen Namen"
+          value={householdName}
+          onChange={(e) => setHouseholdName(e.target.value)}
+          required
+          className={styles.input}
+        />
+        <button type="submit" className={styles.button}>Weiter</button>
+      </form>
+      <div className={styles.progress}>Schritt 1 von 3</div>
     </div>
   )
 }
