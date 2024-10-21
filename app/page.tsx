@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { UserPlus } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Notification from "@/components/Notification"
 
 export default function Signup() {
@@ -17,6 +17,14 @@ export default function Signup() {
   const [error, setError] = useState("")
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const redirectTo = searchParams.get('redirectTo')
+    if (redirectTo) {
+      router.push(decodeURIComponent(redirectTo))
+    }
+  }, [searchParams, router])
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
