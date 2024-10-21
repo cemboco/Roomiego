@@ -3,17 +3,27 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
+  console.log('Auth callback route handler called')
+  
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
 
+  console.log('Received code:', code)
+
   if (code) {
     const supabase = createRouteHandlerClient({ cookies })
-    await supabase.auth.exchangeCodeForSession(code)
+    try {
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+      console.log('Exchange code for session result:', { data, error })
+      if (error) throw error
+    } catch (error) {
+      console.error('Error exchanging code for session:', error)
+    }
   }
 
-  // URL-encode the redirect path
-  const redirectTo = encodeURIComponent('/onboarding/1')
+  // Redirect directly to the first onboarding page after email confirmation
+  const redirectUrl = new URL('/onboarding/1', requestUrl.origin)
+  console.log('Redirecting to:', redirectUrl.toString())
   
-  // Redirect to the first onboarding page after email confirmation
-  return NextResponse.redirect(new URL(`/?redirectTo=${redirectTo}`, requestUrl.origin))
+  return NextResponse.redirect(redirectUrl)
 }
