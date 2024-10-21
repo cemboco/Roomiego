@@ -2,9 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { supabase } from "@/lib/supabase"
+import styles from '../onboarding.module.css'
 
 export default function OnboardingStep2() {
   const [householdType, setHouseholdType] = useState("")
@@ -36,31 +35,24 @@ export default function OnboardingStep2() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-accent p-4">
-      <div className="w-full max-w-[500px] bg-white rounded-lg shadow-lg p-8">
-        <div className="text-4xl font-bold text-primary mb-4 text-center">Roomie</div>
-        <h1 className="text-2xl font-semibold text-primary mb-6 text-center">
-          Art des Haushalts
-        </h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <Select onValueChange={setHouseholdType} required>
-            <SelectTrigger>
-              <SelectValue placeholder="Wähle eine Option" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="wg">WG</SelectItem>
-              <SelectItem value="family">Familie</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button type="submit" className="w-full">Weiter</Button>
-          <Button variant="outline" className="w-full" onClick={() => router.push("/onboarding/1")}>
-            Zurück
-          </Button>
-        </form>
-        <div className="mt-6 text-sm text-primary text-center">
-          Schritt 2 von 3
-        </div>
-      </div>
-    </main>
+    <div className={styles.container}>
+      <div className={styles.logo}>Roomie</div>
+      <h1 className={styles.title}>Art des Haushalts</h1>
+      <form onSubmit={handleSubmit} className={styles.form}>
+        <select 
+          value={householdType} 
+          onChange={(e) => setHouseholdType(e.target.value)}
+          required
+          className={styles.select}
+        >
+          <option value="">Wähle eine Option</option>
+          <option value="wg">WG</option>
+          <option value="family">Familie</option>
+        </select>
+        <button type="submit" className={styles.button}>Weiter</button>
+        <button type="button" onClick={() => router.push("/onboarding/1")} className={`${styles.button} ${styles.backButton}`}>Zurück</button>
+      </form>
+      <div className={styles.progress}>Schritt 2 von 3</div>
+    </div>
   )
 }
