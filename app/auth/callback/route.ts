@@ -12,5 +12,5 @@ export async function GET(request: Request) {
   }
 
   // Redirect to the first onboarding page after email confirmation
-  return NextResponse.redirect(requestUrl.origin + '/onboarding/1')
+  return NextResponse.redirect(new URL('/onboarding/1', requestUrl.origin))
 }
