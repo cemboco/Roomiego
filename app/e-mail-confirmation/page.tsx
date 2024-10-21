@@ -42,11 +42,11 @@ export default function EmailConfirmation() {
         <h1 className="text-2xl font-semibold text-primary mb-6">
           Bestätige deine E-Mail-Adresse
         </h1>
-        <p className="mb-6">
+        <p className="mb-6 text-gray-700">
           Wir haben dir einen Bestätigungslink an deine E-Mail-Adresse gesendet. 
           Bitte klicke auf den Link in der E-Mail, um dein Konto zu aktivieren.
         </p>
-        <p className="mb-6">
+        <p className="mb-6 text-gray-700">
           Nachdem du deine E-Mail-Adresse bestätigt hast, wirst du automatisch zum Onboarding-Prozess weitergeleitet.
         </p>
         <Button onClick={handleResendEmail} className="bg-secondary hover:bg-secondary/90 text-white">
