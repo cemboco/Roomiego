@@ -64,7 +64,7 @@ export default function Signup() {
       <div className="w-full max-w-[500px] bg-white rounded-lg shadow-lg p-8">
         <div className="text-4xl font-bold text-primary mb-4 text-center">Roomie</div>
         <h1 className="text-2xl font-semibold text-primary mb-6 text-center">
-          Join Roomie and Make Home Management a Breeze!
+          Tritt Roomie bei und erleichtere dir das Leben zu Hause!
         </h1>
         <form className="w-full" onSubmit={handleSignUp}>
           <Input 
