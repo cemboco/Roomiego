@@ -46,6 +46,14 @@
   background-color: #0056b3;
 }
 
+.backButton {
+  background-color: #6c757d;
+}
+
+.backButton:hover {
+  background-color: #5a6268;
+}
+
 .progress {
   text-align: center;
   margin-top: 20px;
