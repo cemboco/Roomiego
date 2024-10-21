@@ -11,6 +11,9 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code)
   }
 
+  // URL-encode the redirect path
+  const redirectTo = encodeURIComponent('/onboarding/1')
+  
   // Redirect to the first onboarding page after email confirmation
-  return NextResponse.redirect(new URL('/onboarding/1', requestUrl.origin))
+  return NextResponse.redirect(new URL(`/?redirectTo=${redirectTo}`, requestUrl.origin))
 }
