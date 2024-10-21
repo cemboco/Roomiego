@@ -7,8 +7,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toast"
+import Notification from "@/components/Notification"
 
 export default function Signup() {
   const [fullName, setFullName] = useState("")
@@ -16,8 +15,8 @@ export default function Signup() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const router = useRouter()
-  const { toast } = useToast()
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,6 +25,7 @@ export default function Signup() {
       return
     }
     try {
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -33,17 +33,21 @@ export default function Signup() {
           data: {
             full_name: fullName,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${siteUrl}/auth/callback`,
         }
       })
       if (error) throw error
-      toast({
-        title: "Account created successfully!",
-        description: "Please check your email to verify your account.",
+      setNotification({
+        message: "Account created successfully! Please check your email to verify your account.",
+        type: 'success'
       })
       router.push("/email-confirmation")
     } catch (error: any) {
       setError(error.message)
+      setNotification({
+        message: error.message,
+        type: 'error'
+      })
     }
   }
 
@@ -97,7 +101,13 @@ export default function Signup() {
           Already have an account? <Link href="/login" className="text-secondary hover:underline">Log in here</Link>
         </div>
       </div>
-      <Toaster />
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
+      )}
     </main>
   )
 }
