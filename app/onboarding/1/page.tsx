@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,17 @@ export default function OnboardingStep1() {
   const [householdOption, setHouseholdOption] = useState("")
   const [householdName, setHouseholdName] = useState("")
   const router = useRouter()
+
+  useEffect(() => {
+    const checkEmailVerification = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || !user.email_confirmed_at) {
+        router.push("/email-confirmation")
+      }
+    }
+
+    checkEmailVerification()
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
