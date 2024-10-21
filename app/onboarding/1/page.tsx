@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import styles from './onboarding.module.css'
+import styles from '../onboarding.module.css'
 
 export default function OnboardingStep1() {
   const [householdName, setHouseholdName] = useState("")
