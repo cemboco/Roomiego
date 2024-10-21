@@ -17,7 +17,7 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
   const router = useRouter()
-  const { toast, showToast } = useToast()
+  const { toast } = useToast()
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,15 +32,16 @@ export default function Signup() {
         options: {
           data: {
             full_name: fullName,
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         }
       })
       if (error) throw error
-      showToast({
+      toast({
         title: "Account created successfully!",
-        description: "Please complete the onboarding process.",
+        description: "Please check your email to verify your account.",
       })
-      router.push("/onboarding/1")
+      router.push("/email-confirmation")
     } catch (error: any) {
       setError(error.message)
     }
@@ -96,7 +97,7 @@ export default function Signup() {
           Already have an account? <Link href="/login" className="text-secondary hover:underline">Log in here</Link>
         </div>
       </div>
-      <Toaster toast={toast} />
+      <Toaster />
     </main>
   )
 }
