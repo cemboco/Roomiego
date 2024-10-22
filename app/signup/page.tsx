@@ -18,12 +18,18 @@ export default function Signup() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!supabase) {
+      setError("System ist nicht verfügbar. Bitte später erneut versuchen.")
+      return
+    }
+
     if (password !== confirmPassword) {
       setError("Passwörter stimmen nicht überein")
       return
     }
+
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const result = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -32,7 +38,8 @@ export default function Signup() {
           }
         }
       })
-      if (error) throw error
+
+      if (result.error) throw result.error
       router.push("/onboarding/1")
     } catch (error: any) {
       setError(error.message)
