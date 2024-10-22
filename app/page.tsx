@@ -1,111 +1,38 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { UserPlus } from "lucide-react"
-import Link from "next/link"
-import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
-import Notification from "@/components/Notification"
+import { Button } from "@/components/ui/button"
+import styles from './onboarding.module.css'
+import { useState, useEffect } from "react"
 
-export default function Signup() {
-  const [fullName, setFullName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [error, setError] = useState("")
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+export default function Home() {
   const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (password !== confirmPassword) {
-      setError("Passwords do not match")
-      return
-    }
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-          }
-        }
-      })
-      if (error) throw error
-      setNotification({
-        message: "Account created successfully!",
-        type: 'success'
-      })
-      router.push("/onboarding/1")
-    } catch (error: any) {
-      setError(error.message)
-      setNotification({
-        message: error.message,
-        type: 'error'
-      })
-    }
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  const handleStart = () => {
+    router.push("/onboarding/1")
+  }
+
+  if (isLoading) {
+    return (
+      <main className={styles.container}>
+        <div className={styles.logo}>Roomie</div>
+        <p className={styles.description}>Loading...</p>
+      </main>
+    )
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-accent p-4">
-      <div className="w-full max-w-[500px] bg-white rounded-lg shadow-lg p-8">
-        <div className="text-4xl font-bold text-primary mb-4 text-center">Roomie</div>
-        <h1 className="text-2xl font-semibold text-primary mb-6 text-center">
-          Join Roomie and Make Home Management a Breeze!
-        </h1>
-        <form className="w-full" onSubmit={handleSignUp}>
-          <Input 
-            className="mb-4" 
-            type="text" 
-            placeholder="Full Name" 
-            required 
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
-          <Input 
-            className="mb-4" 
-            type="email" 
-            placeholder="Email Address" 
-            required 
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Input 
-            className="mb-4" 
-            type="password" 
-            placeholder="Create Password" 
-            required 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <Input 
-            className="mb-4" 
-            type="password" 
-            placeholder="Confirm Password" 
-            required 
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
-          {error && <p className="text-danger mb-4">{error}</p>}
-          <Button className="w-full bg-secondary hover:bg-secondary/90 text-white" type="submit">
-            <UserPlus className="mr-2 h-4 w-4" />
-            Sign Up
-          </Button>
-        </form>
-        <div className="mt-6 text-sm text-primary text-center">
-          Already have an account? <Link href="/login" className="text-secondary hover:underline">Log in here</Link>
-        </div>
-      </div>
-      {notification && (
-        <Notification
-          message={notification.message}
-          type={notification.type}
-          onClose={() => setNotification(null)}
-        />
-      )}
+    <main className={styles.container}>
+      <div className={styles.logo}>Roomie</div>
+      <h1 className={`${styles.title} text-4xl mb-6`}>Willkommen bei Roomie!</h1>
+      <p className={styles.description}>Mach dein Zuhause zum perfekten Ort mit Roomie.</p>
+      <Button onClick={handleStart} className={styles.button}>Loslegen</Button>
     </main>
   )
 }
