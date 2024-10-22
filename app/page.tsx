@@ -21,7 +21,7 @@ export default function Home() {
   if (isLoading) {
     return (
       <main className={styles.container}>
-        <div className={styles.logo}>Roomie</div>
+        <div className={styles.logo}>Roomiego</div>
         <p className={styles.description}>Loading...</p>
       </main>
     )
@@ -29,9 +29,9 @@ export default function Home() {
 
   return (
     <main className={styles.container}>
-      <div className={styles.logo}>Roomie</div>
-      <h1 className={`${styles.title} text-4xl mb-6`}>Willkommen bei Roomie!</h1>
-      <p className={styles.description}>Mach dein Zuhause zum perfekten Ort mit Roomie.</p>
+      <div className={styles.logo}>Roomiego</div>
+      <h1 className={`${styles.title} text-5xl mb-6`}>Willkommen bei Roomie, Amigo!</h1>
+      <p className={styles.description}>Mach dein Zuhause zum perfekten Ort.</p>
       <Button onClick={handleStart} className={styles.button}>Loslegen</Button>
     </main>
   )
