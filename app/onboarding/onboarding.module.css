@@ -64,14 +64,6 @@
   background-color: #4A3E4C;
 }
 
-.backButton {
-  background-color: #F2B05E;
-}
-
-.backButton:hover {
-  background-color: #F26D6D;
-}
-
 .progress {
   margin-top: 20px;
   color: #4A3E4C;
