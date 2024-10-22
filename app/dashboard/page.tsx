@@ -16,34 +16,51 @@ export default function Dashboard() {
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      setFullName(user?.user_metadata?.full_name || "")
-      setLoading(false)
+      if (!supabase) {
+        console.error('Supabase client not initialized')
+        return
+      }
+
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser()
+        if (error) throw error
+        
+        if (user) {
+          setUser(user)
+          setFullName(user?.user_metadata?.full_name || "")
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error)
+      } finally {
+        setLoading(false)
+      }
     }
     getUser()
   }, [])
 
   const handleSignOut = async () => {
+    if (!supabase) return
     await supabase.auth.signOut()
     router.push("/login")
   }
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!supabase) return
+
     try {
       const { error } = await supabase.auth.updateUser({
         data: { full_name: fullName }
       })
       if (error) throw error
-      setUpdateMessage("Profile updated successfully!")
+      setUpdateMessage("Profil erfolgreich aktualisiert!")
     } catch (error: any) {
-      setUpdateMessage(`Error updating profile: ${error.message}`)
+      setUpdateMessage(`Fehler beim Aktualisieren des Profils: ${error.message}`)
     }
   }
 
   if (loading) {
-    return <div>Loading...</div>
+    return <div className="flex items-center justify-center min-h-screen">Laden...</div>
   }
 
   if (!user) {
@@ -54,13 +71,13 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-accent p-4">
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-primary mb-6">Welcome to your Dashboard, {user.user_metadata.full_name}!</h1>
+        <h1 className="text-3xl font-bold text-primary mb-6">Willkommen in deinem Dashboard, {user.user_metadata.full_name}!</h1>
         
         {user.user_metadata.avatar_url && (
           <div className="mb-4">
             <Image 
               src={user.user_metadata.avatar_url} 
-              alt="Profile Picture" 
+              alt="Profilbild" 
               width={100} 
               height={100} 
               className="rounded-full"
@@ -68,24 +85,24 @@ export default function Dashboard() {
           </div>
         )}
         
-        <p className="text-lg text-primary mb-4">Email: {user.email}</p>
+        <p className="text-lg text-primary mb-4">E-Mail: {user.email}</p>
         
         <form onSubmit={handleUpdateProfile} className="mb-6">
           <Input 
             type="text" 
             value={fullName} 
             onChange={(e) => setFullName(e.target.value)} 
-            placeholder="Full Name" 
+            placeholder="Vollständiger Name" 
             className="mb-4"
           />
           <Button type="submit" className="bg-secondary hover:bg-secondary/90 text-white mr-4">
-            Update Profile
+            Profil aktualisieren
           </Button>
           {updateMessage && <span className="text-sm text-primary">{updateMessage}</span>}
         </form>
 
         <Button onClick={handleSignOut} className="bg-danger hover:bg-danger/90 text-white">
-          Sign Out
+          Abmelden
         </Button>
       </div>
     </div>
