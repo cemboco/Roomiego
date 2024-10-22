@@ -7,6 +7,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
+import Notification from "@/components/Notification"
 
 export default function Signup() {
   const [fullName, setFullName] = useState("")
@@ -14,22 +15,19 @@ export default function Signup() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
+  const [notification, setNotification] = useState<{message: string; type: 'success' | 'error'} | null>(null)
   const router = useRouter()
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!supabase) {
-      setError("System ist nicht verfügbar. Bitte später erneut versuchen.")
-      return
-    }
-
     if (password !== confirmPassword) {
       setError("Passwörter stimmen nicht überein")
       return
     }
-
     try {
-      const result = await supabase.auth.signUp({
+      if (!supabase) throw new Error("System nicht verfügbar")
+      
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -38,11 +36,20 @@ export default function Signup() {
           }
         }
       })
-
-      if (result.error) throw result.error
+      if (error) throw error
+      
+      setNotification({
+        message: "Account erfolgreich erstellt!",
+        type: "success"
+      })
+      
       router.push("/onboarding/1")
     } catch (error: any) {
       setError(error.message)
+      setNotification({
+        message: error.message,
+        type: "error"
+      })
     }
   }
 
@@ -96,6 +103,13 @@ export default function Signup() {
           Bereits ein Konto? <Link href="/login" className="text-secondary hover:underline">Hier einloggen</Link>
         </div>
       </div>
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
+      )}
     </main>
   )
 }
