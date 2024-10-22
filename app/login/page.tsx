@@ -16,12 +16,18 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!supabase) {
+      setError("System ist nicht verfügbar. Bitte später erneut versuchen.")
+      return
+    }
+
     try {
-      const { data, error } = await supabase?.auth.signInWithPassword({
+      const result = await supabase.auth.signInWithPassword({
         email,
         password,
       })
-      if (error) throw error
+
+      if (result.error) throw result.error
       router.push("/dashboard")
     } catch (error: any) {
       setError(error.message)
