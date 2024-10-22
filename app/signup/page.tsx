@@ -19,7 +19,6 @@ export default function Signup() {
   const router = useRouter()
 
   useEffect(() => {
-    // Check if onboarding is complete
     const householdName = localStorage.getItem('householdName')
     const householdType = localStorage.getItem('householdType')
     if (!householdName || !householdType) {
@@ -29,10 +28,14 @@ export default function Signup() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
+    setNotification(null)
+
     if (password !== confirmPassword) {
-      setError("Passwords do not match")
+      setError("Passwörter stimmen nicht überein")
       return
     }
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -43,51 +46,64 @@ export default function Signup() {
           }
         }
       })
+
       if (error) throw error
 
-      // Create household and user_household entries
-      const householdName = localStorage.getItem('householdName')
-      const householdType = localStorage.getItem('householdType')
-      const { data: householdData, error: householdError } = await supabase
-        .from('households')
-        .insert([{ name: householdName, type: householdType, created_by: data.user?.id }])
-        .select()
-      if (householdError) throw householdError
-
-      await supabase
-        .from('user_households')
-        .insert([{ user_id: data.user?.id, household_id: householdData[0].id }])
-
-      // Upload profile picture if exists
-      const profilePictureUrl = localStorage.getItem('profilePicture')
-      if (profilePictureUrl) {
-        const response = await fetch(profilePictureUrl)
-        const blob = await response.blob()
-        const fileName = `${data.user?.id}${Date.now()}.${blob.type.split('/')[1]}`
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, blob)
-        if (uploadError) throw uploadError
-
-        const { data: { publicUrl }, error: urlError } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(fileName)
-        if (urlError) throw urlError
-
-        await supabase.auth.updateUser({
-          data: { avatar_url: publicUrl }
+      if (data.user) {
+        // Create household and user_household entries
+        const householdName = localStorage.getItem('householdName')
+        const householdType = localStorage.getItem('householdType')
+        
+        // Use RPC to create household and user_household entries
+        const { data: rpcData, error: rpcError } = await supabase.rpc('create_household_and_link_user', {
+          p_user_id: data.user.id,
+          p_household_name: householdName,
+          p_household_type: householdType
         })
-      }
 
-      setNotification({
-        message: "Account created successfully!",
-        type: 'success'
-      })
-      router.push("/dashboard")
+        if (rpcError) throw rpcError
+
+        // Upload profile picture if exists
+        const profilePictureUrl = localStorage.getItem('profilePicture')
+        if (profilePictureUrl) {
+          try {
+            const response = await fetch(profilePictureUrl)
+            const blob = await response.blob()
+            const fileName = `${data.user.id}${Date.now()}.${blob.type.split('/')[1]}`
+            const { error: uploadError } = await supabase.storage
+              .from('avatars')
+              .upload(fileName, blob)
+            
+            if (uploadError) throw uploadError
+
+            const { data: { publicUrl }, error: urlError } = supabase.storage
+              .from('avatars')
+              .getPublicUrl(fileName)
+            
+            if (urlError) throw urlError
+
+            await supabase.auth.updateUser({
+              data: { avatar_url: publicUrl }
+            })
+          } catch (storageError) {
+            console.error("Error uploading profile picture:", storageError)
+            // Don't throw the error, just log it and continue
+          }
+        }
+
+        setNotification({
+          message: "Konto erfolgreich erstellt! Bitte überprüfen Sie Ihre E-Mails für den Bestätigungslink.",
+          type: 'success'
+        })
+        
+        // Redirect to email confirmation page instead of dashboard
+        router.push("/email-confirmation")
+      }
     } catch (error: any) {
-      setError(error.message)
+      console.error("Signup error:", error)
+      setError(error.message || "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.")
       setNotification({
-        message: error.message,
+        message: error.message || "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.",
         type: 'error'
       })
     }
@@ -133,7 +149,7 @@ export default function Signup() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
-          {error && <p className="text-danger mb-4">{error}</p>}
+          {error && <p className="text-red-500 mb-4">{error}</p>}
           <Button className="w-full bg-secondary hover:bg-secondary/90 text-white" type="submit">
             <UserPlus className="mr-2 h-4 w-4" />
             Registrieren
