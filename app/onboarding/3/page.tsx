@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import styles from '../../onboarding.module.css'
+import styles from '../onboarding.module.css'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
