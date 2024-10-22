@@ -1,61 +1,78 @@
 .container {
   font-family: Arial, sans-serif;
-  background-color: white;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  background-color: #F0ECC9;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   padding: 20px;
-  width: 80%;
-  max-width: 500px;
-  margin: 0 auto;
 }
 
 .logo {
-  font-size: 2em;
-  color: #007bff;
-  text-align: center;
+  font-size: 3em;
+  color: #4A3E4C;
   margin-bottom: 20px;
 }
 
 .title {
-  font-size: 1.8em;
-  color: #333;
+  font-size: 2em;
+  color: #4A3E4C;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.description {
+  font-size: 1.2em;
+  color: #4A3E4C;
+  margin-bottom: 30px;
   text-align: center;
 }
 
 .form {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 400px;
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-.input, .select, .button {
+.input, .select {
   margin: 10px 0;
-  padding: 10px;
-  border: 1px solid #ccc;
+  padding: 15px;
+  border: 1px solid #65C3BA;
   border-radius: 5px;
   font-size: 1em;
 }
 
 .button {
-  background-color: #007bff;
+  margin: 10px 0;
+  padding: 15px;
+  background-color: #65C3BA;
   color: white;
   border: none;
+  border-radius: 5px;
+  font-size: 1em;
   cursor: pointer;
+  transition: background-color 0.3s;
 }
 
 .button:hover {
-  background-color: #0056b3;
+  background-color: #4A3E4C;
 }
 
 .backButton {
-  background-color: #6c757d;
+  background-color: #F2B05E;
 }
 
 .backButton:hover {
-  background-color: #5a6268;
+  background-color: #F26D6D;
 }
 
 .progress {
-  text-align: center;
   margin-top: 20px;
-  color: #777;
+  color: #4A3E4C;
 }
