@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { UserPlus } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 import Notification from "@/components/Notification"
@@ -18,24 +18,12 @@ export default function Signup() {
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const router = useRouter()
 
-  useEffect(() => {
-    const householdName = localStorage.getItem('householdName')
-    const householdType = localStorage.getItem('householdType')
-    if (!householdName || !householdType) {
-      router.push('/onboarding/1')
-    }
-  }, [router])
-
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError("")
-    setNotification(null)
-
     if (password !== confirmPassword) {
       setError("Passwörter stimmen nicht überein")
       return
     }
-
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -46,64 +34,18 @@ export default function Signup() {
           }
         }
       })
-
       if (error) throw error
-
-      if (data.user) {
-        // Create household and user_household entries
-        const householdName = localStorage.getItem('householdName')
-        const householdType = localStorage.getItem('householdType')
-        
-        // Use RPC to create household and user_household entries
-        const { data: rpcData, error: rpcError } = await supabase.rpc('create_household_and_link_user', {
-          p_user_id: data.user.id,
-          p_household_name: householdName,
-          p_household_type: householdType
-        })
-
-        if (rpcError) throw rpcError
-
-        // Upload profile picture if exists
-        const profilePictureUrl = localStorage.getItem('profilePicture')
-        if (profilePictureUrl) {
-          try {
-            const response = await fetch(profilePictureUrl)
-            const blob = await response.blob()
-            const fileName = `${data.user.id}${Date.now()}.${blob.type.split('/')[1]}`
-            const { error: uploadError } = await supabase.storage
-              .from('avatars')
-              .upload(fileName, blob)
-            
-            if (uploadError) throw uploadError
-
-            const { data: { publicUrl }, error: urlError } = supabase.storage
-              .from('avatars')
-              .getPublicUrl(fileName)
-            
-            if (urlError) throw urlError
-
-            await supabase.auth.updateUser({
-              data: { avatar_url: publicUrl }
-            })
-          } catch (storageError) {
-            console.error("Error uploading profile picture:", storageError)
-            // Don't throw the error, just log it and continue
-          }
-        }
-
-        setNotification({
-          message: "Konto erfolgreich erstellt! Bitte überprüfen Sie Ihre E-Mails für den Bestätigungslink.",
-          type: 'success'
-        })
-        
-        // Redirect to email confirmation page instead of dashboard
-        router.push("/email-confirmation")
-      }
-    } catch (error: any) {
-      console.error("Signup error:", error)
-      setError(error.message || "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.")
+      
       setNotification({
-        message: error.message || "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.",
+        message: "Konto erfolgreich erstellt!",
+        type: 'success'
+      })
+      
+      router.push("/onboarding/1")
+    } catch (error: any) {
+      setError(error.message)
+      setNotification({
+        message: error.message,
         type: 'error'
       })
     }
