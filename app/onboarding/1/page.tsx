@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation"
 import styles from '../onboarding.module.css'
 
 export default function OnboardingStep1() {
+  const [householdOption, setHouseholdOption] = useState("")
   const [householdName, setHouseholdName] = useState("")
   const router = useRouter()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    localStorage.setItem('householdOption', householdOption)
     localStorage.setItem('householdName', householdName)
     router.push("/onboarding/2")
   }
@@ -19,9 +21,19 @@ export default function OnboardingStep1() {
       <div className={styles.logo}>Roomie</div>
       <h1 className={styles.title}>Schritt 1: Dein Haushalt</h1>
       <form onSubmit={handleSubmit} className={styles.form}>
+        <select 
+          value={householdOption} 
+          onChange={(e) => setHouseholdOption(e.target.value)}
+          required
+          className={styles.select}
+        >
+          <option value="">Wähle eine Option</option>
+          <option value="create">Neuen Haushalt erstellen</option>
+          <option value="join">Bestehendem Haushalt beitreten</option>
+        </select>
         <input
           type="text"
-          placeholder="Gib deinem Haushalt einen Namen"
+          placeholder="Haushaltsname"
           value={householdName}
           onChange={(e) => setHouseholdName(e.target.value)}
           required
