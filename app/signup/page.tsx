@@ -9,7 +9,6 @@ import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
 export default function Signup() {
-  const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -23,20 +22,23 @@ export default function Signup() {
       return
     }
     try {
-      if (!supabase) throw new Error("System nicht verfügbar")
-      
-      const { data, error } = await supabase.auth.signUp({
+      if (!supabase) {
+        throw new Error("Supabase client not initialized")
+      }
+
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: fullName,
+            household_name: localStorage.getItem('householdName'),
+            household_type: localStorage.getItem('householdType'),
+            profile_picture: localStorage.getItem('profilePicture'),
           }
         }
       })
-      if (error) throw error
-      
-      router.push("/onboarding/1")
+      if (signUpError) throw signUpError
+      router.push("/dashboard")
     } catch (error: any) {
       setError(error.message)
     }
@@ -50,14 +52,6 @@ export default function Signup() {
           Erstelle dein Konto
         </h1>
         <form className="w-full" onSubmit={handleSignUp}>
-          <Input 
-            className="mb-4" 
-            type="text" 
-            placeholder="Vollständiger Name" 
-            required 
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
           <Input 
             className="mb-4" 
             type="email" 
