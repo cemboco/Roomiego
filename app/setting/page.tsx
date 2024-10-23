@@ -17,7 +17,18 @@ export default function Settings() {
   useEffect(() => {
     const getUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        if (!supabase) {
+          console.error("Supabase client not initialized")
+          router.push("/login")
+          return
+        }
+
+        const { data: { user }, error } = await supabase.auth.getUser()
+        
+        if (error) {
+          throw error
+        }
+
         if (!user) {
           router.push("/login")
           return
@@ -28,6 +39,7 @@ export default function Settings() {
       } catch (error) {
         console.error("Error fetching user:", error)
         setLoading(false)
+        router.push("/login")
       }
     }
     getUser()
@@ -36,6 +48,11 @@ export default function Settings() {
   const handleUpdateSettings = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      if (!supabase) {
+        console.error("Supabase client not initialized")
+        return
+      }
+
       const { error } = await supabase.auth.updateUser({
         data: { household_name: householdName }
       })
