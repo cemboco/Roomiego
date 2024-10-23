@@ -4,107 +4,98 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import Image from "next/image"
+import { Bell, Settings, User } from "lucide-react"
+import Link from "next/link"
+import TaskList from "@/components/dashboard/TaskList"
+import Chat from "@/components/dashboard/Chat"
+import { Task, UserProfile } from "@/types/dashboard"
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
-  const [fullName, setFullName] = useState("")
+  const [householdName, setHouseholdName] = useState("")
   const [loading, setLoading] = useState(true)
-  const [updateMessage, setUpdateMessage] = useState("")
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [householdMembers, setHouseholdMembers] = useState<UserProfile[]>([])
   const router = useRouter()
 
   useEffect(() => {
     const getUser = async () => {
-      if (!supabase) {
-        console.error('Supabase client not initialized')
-        return
-      }
-
       try {
-        const { data: { user }, error } = await supabase.auth.getUser()
-        if (error) throw error
-        
-        if (user) {
-          setUser(user)
-          setFullName(user?.user_metadata?.full_name || "")
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push("/login")
+          return
         }
+        setUser(user)
+        setHouseholdName(user?.user_metadata?.household_name || "")
+        // Fetch household members and tasks here
+        setLoading(false)
       } catch (error) {
-        console.error('Error fetching user:', error)
-      } finally {
+        console.error("Error fetching user:", error)
         setLoading(false)
       }
     }
     getUser()
-  }, [])
-
-  const handleSignOut = async () => {
-    if (!supabase) return
-    await supabase.auth.signOut()
-    router.push("/login")
-  }
-
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!supabase) return
-
-    try {
-      const { error } = await supabase.auth.updateUser({
-        data: { full_name: fullName }
-      })
-      if (error) throw error
-      setUpdateMessage("Profil erfolgreich aktualisiert!")
-    } catch (error: any) {
-      setUpdateMessage(`Fehler beim Aktualisieren des Profils: ${error.message}`)
-    }
-  }
+  }, [router])
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Laden...</div>
-  }
-
-  if (!user) {
-    router.push("/login")
-    return null
+    return (
+      <div className="min-h-screen bg-accent flex items-center justify-center">
+        <div className="text-primary text-xl">Loading...</div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-accent p-4">
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-primary mb-6">Willkommen in deinem Dashboard, {user.user_metadata.full_name}!</h1>
-        
-        {user.user_metadata.avatar_url && (
-          <div className="mb-4">
-            <Image 
-              src={user.user_metadata.avatar_url} 
-              alt="Profilbild" 
-              width={100} 
-              height={100} 
-              className="rounded-full"
+    <div className="min-h-screen bg-[#F0ECC9]">
+      {/* Header */}
+      <header className="bg-white shadow-md p-4 fixed w-full top-0 z-50">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="text-3xl font-bold text-[#4A3E4C]">Roomie</div>
+          <div className="flex items-center gap-4">
+            <button className="relative">
+              <Bell className="h-6 w-6 text-[#4A3E4C] hover:text-[#65C3BA] transition-colors" />
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                3
+              </span>
+            </button>
+            <Link href="/profile">
+              <Button variant="ghost" className="p-2">
+                <User className="h-6 w-6 text-[#4A3E4C] hover:text-[#65C3BA]" />
+              </Button>
+            </Link>
+            <Link href="/settings">
+              <Button variant="ghost" className="p-2">
+                <Settings className="h-6 w-6 text-[#4A3E4C] hover:text-[#65C3BA]" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="pt-20 pb-20 px-4 max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold text-primary mb-8">
+          {householdName}
+        </h1>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Tasks Section */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <TaskList 
+              tasks={tasks} 
+              setTasks={setTasks} 
+              householdMembers={householdMembers}
+              currentUser={user}
             />
           </div>
-        )}
-        
-        <p className="text-lg text-primary mb-4">E-Mail: {user.email}</p>
-        
-        <form onSubmit={handleUpdateProfile} className="mb-6">
-          <Input 
-            type="text" 
-            value={fullName} 
-            onChange={(e) => setFullName(e.target.value)} 
-            placeholder="Vollständiger Name" 
-            className="mb-4"
-          />
-          <Button type="submit" className="bg-secondary hover:bg-secondary/90 text-white mr-4">
-            Profil aktualisieren
-          </Button>
-          {updateMessage && <span className="text-sm text-primary">{updateMessage}</span>}
-        </form>
 
-        <Button onClick={handleSignOut} className="bg-danger hover:bg-danger/90 text-white">
-          Abmelden
-        </Button>
-      </div>
+          {/* Chat Section */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <Chat householdMembers={householdMembers} currentUser={user} />
+          </div>
+        </div>
+      </main>
     </div>
   )
 }
