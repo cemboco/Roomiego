@@ -17,11 +17,16 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const { data, error } = await supabase?.auth.signInWithPassword({
+      if (!supabase) {
+        throw new Error("Supabase client not initialized")
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
-      if (error) throw error
+
+      if (signInError) throw signInError
       router.push("/dashboard")
     } catch (error: any) {
       setError(error.message)
