@@ -21,11 +21,23 @@ export default function Dashboard() {
   useEffect(() => {
     const getUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        if (!supabase) {
+          console.error("Supabase client not initialized")
+          router.push("/login")
+          return
+        }
+
+        const { data: { user }, error } = await supabase.auth.getUser()
+        
+        if (error) {
+          throw error
+        }
+
         if (!user) {
           router.push("/login")
           return
         }
+
         setUser(user)
         setHouseholdName(user?.user_metadata?.household_name || "")
         // Fetch household members and tasks here
@@ -33,6 +45,7 @@ export default function Dashboard() {
       } catch (error) {
         console.error("Error fetching user:", error)
         setLoading(false)
+        router.push("/login")
       }
     }
     getUser()
