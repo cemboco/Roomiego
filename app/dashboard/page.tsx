@@ -8,7 +8,7 @@ import { Bell, Settings, User } from "lucide-react"
 import Link from "next/link"
 import TaskList from "@/components/dashboard/TaskList"
 import Chat from "@/components/dashboard/Chat"
-import { Task, UserProfile } from "@/types/dashboard"
+import { Task, UserProfile } from "@/types"
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
