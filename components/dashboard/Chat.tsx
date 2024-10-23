@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { UserProfile } from "@/types"
+import { UserProfile } from "@/app/types"
 import { Send } from "lucide-react"
 
 interface ChatProps {
