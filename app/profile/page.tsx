@@ -16,16 +16,29 @@ export default function Profile() {
   useEffect(() => {
     const getUser = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        if (!supabase) {
+          console.error("Supabase client not initialized")
+          router.push("/login")
+          return
+        }
+
+        const { data: { user }, error } = await supabase.auth.getUser()
+        
+        if (error) {
+          throw error
+        }
+
         if (!user) {
           router.push("/login")
           return
         }
+        
         setUser(user)
         setLoading(false)
       } catch (error) {
         console.error("Error fetching user:", error)
         setLoading(false)
+        router.push("/login")
       }
     }
     getUser()
@@ -33,7 +46,14 @@ export default function Profile() {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut()
+      if (!supabase) {
+        console.error("Supabase client not initialized")
+        return
+      }
+
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+      
       router.push("/login")
     } catch (error) {
       console.error("Error signing out:", error)
