@@ -16,18 +16,12 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!supabase) {
-      setError("System ist nicht verfügbar. Bitte später erneut versuchen.")
-      return
-    }
-
     try {
-      const result = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase?.auth.signInWithPassword({
         email,
         password,
       })
-
-      if (result.error) throw result.error
+      if (error) throw error
       router.push("/dashboard")
     } catch (error: any) {
       setError(error.message)
@@ -68,7 +62,7 @@ export default function Login() {
           <Link href="/forgot-password" className="text-secondary hover:underline">Passwort vergessen?</Link>
         </div>
         <div className="mt-4 text-sm text-primary text-center">
-          Noch kein Konto? <Link href="/" className="text-secondary hover:underline">Hier registrieren</Link>
+          Noch kein Konto? <Link href="/onboarding/1" className="text-secondary hover:underline">Jetzt registrieren</Link>
         </div>
       </div>
     </main>
