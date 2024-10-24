@@ -19,36 +19,90 @@ export default function Dashboard() {
   const router = useRouter()
 
   useEffect(() => {
-    const getUser = async () => {
+    const checkAuth = async () => {
       try {
         if (!supabase) {
-          console.error("Supabase client not initialized")
-          router.push("/login")
+          throw new Error("Supabase client not initialized")
+        }
+
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError) {
+          throw sessionError
+        }
+
+        if (!session) {
+          router.replace("/login")
           return
         }
 
-        const { data: { user }, error } = await supabase.auth.getUser()
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
         
-        if (error) {
-          throw error
+        if (userError) {
+          throw userError
         }
 
         if (!user) {
-          router.push("/login")
+          router.replace("/login")
           return
         }
 
         setUser(user)
-        setHouseholdName(user?.user_metadata?.household_name || "")
-        // Fetch household members and tasks here
+        setHouseholdName(user?.user_metadata?.household_name || "Mein Haushalt")
+        
+        // Fetch household members
+        const { data: members, error: membersError } = await supabase
+          .from('household_members')
+          .select('*')
+          .eq('household_id', user.user_metadata.household_id)
+
+        if (membersError) {
+          console.error("Error fetching household members:", membersError)
+        } else {
+          setHouseholdMembers(members || [])
+        }
+
+        // Fetch tasks
+        const { data: taskData, error: tasksError } = await supabase
+          .from('tasks')
+          .select('*')
+          .eq('household_id', user.user_metadata.household_id)
+          .order('created_at', { ascending: false })
+
+        if (tasksError) {
+          console.error("Error fetching tasks:", tasksError)
+        } else {
+          setTasks(taskData || [])
+        }
+
         setLoading(false)
       } catch (error) {
-        console.error("Error fetching user:", error)
-        setLoading(false)
-        router.push("/login")
+        console.error("Authentication error:", error)
+        router.replace("/login")
       }
     }
-    getUser()
+
+    checkAuth()
+
+    // Set up real-time subscription for tasks
+    const tasksSubscription = supabase
+      ?.channel('tasks')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          setTasks(current => [...current, payload.new as Task])
+        } else if (payload.eventType === 'UPDATE') {
+          setTasks(current => current.map(task => 
+            task.id === payload.new.id ? payload.new as Task : task
+          ))
+        } else if (payload.eventType === 'DELETE') {
+          setTasks(current => current.filter(task => task.id !== payload.old.id))
+        }
+      })
+      .subscribe()
+
+    return () => {
+      tasksSubscription?.unsubscribe()
+    }
   }, [router])
 
   if (loading) {
