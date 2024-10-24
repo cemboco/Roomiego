@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import styles from '../onboarding.module.css'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { LogIn } from "lucide-react"
+import { LogIn, UserPlus, Image as ImageIcon } from "lucide-react"
 import Link from "next/link"
 
 export default function OnboardingStep3() {
@@ -34,13 +34,17 @@ export default function OnboardingStep3() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F0ECC9]">
+    <>
       {/* Header */}
-      <header className="bg-white shadow-md p-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="text-3xl font-bold text-[#4A3E4C]">Roomie</div>
+      <header className="bg-white/80 backdrop-blur-md fixed w-full z-50 border-b border-gray-100">
+        <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-4">
+          <Link href="/">
+            <div className="text-3xl font-bold bg-gradient-to-r from-[#4A3E4C] to-[#65C3BA] bg-clip-text text-transparent">
+              Roomie
+            </div>
+          </Link>
           <Link href="/login">
-            <Button className="bg-[#65C3BA] hover:bg-[#4A3E4C]">
+            <Button className="bg-[#65C3BA] hover:bg-[#4A3E4C] transition-all duration-300">
               <LogIn className="mr-2 h-4 w-4" />
               Anmelden
             </Button>
@@ -49,29 +53,56 @@ export default function OnboardingStep3() {
       </header>
 
       <main className={styles.container}>
-        <h1 className={styles.title}>Schritt 3: Dein Profil</h1>
+        <h1 className={styles.title}>Dein Profil</h1>
+        <p className={styles.description}>
+          Lass uns dein Profil erstellen. Mit einem personalisierten Profil macht die Zusammenarbeit noch mehr Spaß.
+        </p>
         <form onSubmit={handleSubmit} className={styles.form}>
-          <Input
-            type="text"
-            placeholder="Vollständiger Name"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            required
-            className="mb-4"
-          />
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setProfilePicture(e.target.files ? e.target.files[0] : null)}
-            className="mb-4"
-          />
-          <Button type="submit" className={styles.button}>Weiter zur Registrierung</Button>
-          <Button type="button" onClick={handleBack} variant="outline" className="mt-2">
-            Zurück
-          </Button>
+          <div className="space-y-2 mb-4">
+            <label className="text-sm font-medium text-gray-700">Dein Name</label>
+            <Input
+              type="text"
+              placeholder="Vollständiger Name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              className="w-full"
+            />
+          </div>
+          
+          <div className="space-y-2 mb-6">
+            <label className="text-sm font-medium text-gray-700">Profilbild (optional)</label>
+            <div className="flex items-center gap-4">
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setProfilePicture(e.target.files ? e.target.files[0] : null)}
+                className="flex-1"
+              />
+              <ImageIcon className="h-6 w-6 text-gray-400" />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <Button 
+              type="submit" 
+              className="w-full bg-[#65C3BA] hover:bg-[#4A3E4C] transition-all duration-300"
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Weiter zur Registrierung
+            </Button>
+            <Button 
+              type="button" 
+              onClick={handleBack} 
+              variant="outline" 
+              className="w-full"
+            >
+              Zurück
+            </Button>
+          </div>
         </form>
         <div className={styles.progress}>Schritt 3 von 3</div>
       </main>
-    </div>
+    </>
   )
 }
