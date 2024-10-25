@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Task, UserProfile } from "@/app/types"
-import { Calendar, Clock, Plus, Trash2 } from "lucide-react"
+import { Calendar, Clock, Plus, Trash2, CheckCircle } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 interface TaskListProps {
   tasks: Task[]
@@ -20,44 +21,104 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
   const [dueDate, setDueDate] = useState("")
   const [quickActionMinutes, setQuickActionMinutes] = useState("")
 
-  const handleAddTask = () => {
+  const handleAddTask = async () => {
     if (!newTask || !selectedMember) return
 
-    const task: Task = {
-      id: Date.now().toString(),
-      title: newTask,
-      assignedTo: selectedMember,
-      createdBy: currentUser.id,
-      dueDate: dueDate || null,
-      quickActionMinutes: quickActionMinutes ? parseInt(quickActionMinutes) : null,
-      completed: false,
-      startTime: quickActionMinutes ? new Date().toISOString() : null,
+    try {
+      const task = {
+        title: newTask,
+        assigned_to: selectedMember,
+        created_by: currentUser.id,
+        household_id: currentUser.user_metadata.household_id,
+        due_date: dueDate || null,
+        quick_action_minutes: quickActionMinutes ? parseInt(quickActionMinutes) : null,
+        completed: false,
+        start_time: null,
+      }
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert([task])
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setTasks([...tasks, data])
+      setNewTask("")
+      setSelectedMember("")
+      setDueDate("")
+      setQuickActionMinutes("")
+
+      // Update points for task creation
+      await supabase.rpc('increment_user_points', {
+        user_id: currentUser.id,
+        points_to_add: 5
+      })
+    } catch (error) {
+      console.error("Error adding task:", error)
     }
-
-    setTasks([...tasks, task])
-    setNewTask("")
-    setSelectedMember("")
-    setDueDate("")
-    setQuickActionMinutes("")
   }
 
-  const handleCompleteTask = (taskId: string) => {
-    setTasks(
-      tasks.map(task =>
-        task.id === taskId
-          ? { ...task, completed: true }
-          : task
+  const handleCompleteTask = async (taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update({ completed: true, completed_at: new Date().toISOString() })
+        .eq('id', taskId)
+
+      if (error) throw error
+
+      setTasks(
+        tasks.map(task =>
+          task.id === taskId
+            ? { ...task, completed: true }
+            : task
+        )
       )
-    )
+
+      // Add points for completing task
+      await supabase.rpc('increment_user_points', {
+        user_id: currentUser.id,
+        points_to_add: 10
+      })
+
+      // Add to task history
+      const task = tasks.find(t => t.id === taskId)
+      if (task) {
+        await supabase
+          .from('task_history')
+          .insert([{
+            task_id: taskId,
+            task_name: task.title,
+            completed_by: currentUser.id,
+            household_id: currentUser.user_metadata.household_id,
+            points_earned: 10
+          }])
+      }
+    } catch (error) {
+      console.error("Error completing task:", error)
+    }
   }
 
-  const handleDeleteTask = (taskId: string) => {
-    setTasks(tasks.filter(task => task.id !== taskId))
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', taskId)
+
+      if (error) throw error
+
+      setTasks(tasks.filter(task => task.id !== taskId))
+    } catch (error) {
+      console.error("Error deleting task:", error)
+    }
   }
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold text-primary mb-6">Aufgaben</h2>
+      <h2 className="text-2xl font-semibold text-[#4A3E4C] mb-6">Aufgaben</h2>
 
       {/* Add Task Form */}
       <div className="space-y-4 mb-8">
@@ -65,6 +126,7 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
           placeholder="Neue Aufgabe"
           value={newTask}
           onChange={(e) => setNewTask(e.target.value)}
+          className="w-full"
         />
         <Select value={selectedMember} onValueChange={setSelectedMember}>
           <SelectTrigger>
@@ -94,7 +156,10 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
             className="flex-1"
           />
         </div>
-        <Button onClick={handleAddTask} className="w-full bg-secondary hover:bg-secondary/90">
+        <Button 
+          onClick={handleAddTask} 
+          className="w-full bg-[#65C3BA] hover:bg-[#4A3E4C] transition-all duration-300"
+        >
           <Plus className="mr-2 h-4 w-4" />
           Aufgabe hinzufügen
         </Button>
@@ -102,54 +167,63 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
 
       {/* Task List */}
       <div className="space-y-4">
-        {tasks.map(task => (
-          <div
-            key={task.id}
-            className={`p-4 rounded-lg border ${
-              task.completed ? 'bg-gray-50 border-gray-200' : 'bg-white border-secondary'
-            }`}
-          >
-            <div className="flex justify-between items-start mb-2">
-              <h3 className={`font-medium ${task.completed ? 'line-through text-gray-500' : ''}`}>
-                {task.title}
-              </h3>
-              <div className="flex gap-2">
-                {!task.completed && (
-                  <Button
-                    onClick={() => handleCompleteTask(task.id)}
-                    variant="outline"
-                    size="sm"
-                    className="text-green-600 hover:text-green-700"
-                  >
-                    Erledigt
-                  </Button>
-                )}
-                {task.completed && (
-                  <Button
-                    onClick={() => handleDeleteTask(task.id)}
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="text-sm text-gray-500 space-y-1">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                {task.dueDate || 'Kein Datum'}
-              </div>
-              {task.quickActionMinutes && (
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  {task.quickActionMinutes} Minuten
-                </div>
-              )}
-            </div>
+        {tasks.length === 0 ? (
+          <div className="text-center text-gray-500 py-8">
+            Keine Aufgaben vorhanden. Füge eine neue Aufgabe hinzu!
           </div>
-        ))}
+        ) : (
+          tasks.map(task => (
+            <div
+              key={task.id}
+              className={`p-6 rounded-xl border transform transition-all duration-300 hover:shadow-md ${
+                task.completed ? 'bg-gray-50 border-gray-200' : 'bg-white border-[#65C3BA]'
+              }`}
+            >
+              <div className="flex justify-between items-start mb-3">
+                <h3 className={`font-medium ${task.completed ? 'line-through text-gray-500' : 'text-[#4A3E4C]'}`}>
+                  {task.title}
+                </h3>
+                <div className="flex gap-2">
+                  {!task.completed && (
+                    <Button
+                      onClick={() => handleCompleteTask(task.id)}
+                      variant="outline"
+                      size="sm"
+                      className="text-green-600 hover:text-green-700"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {task.completed && (
+                    <Button
+                      onClick={() => handleDeleteTask(task.id)}
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="text-sm text-gray-500 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  {task.dueDate || 'Kein Datum'}
+                </div>
+                {task.quickActionMinutes && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    {task.quickActionMinutes} Minuten
+                  </div>
+                )}
+                <div className="text-xs text-gray-400">
+                  Zugewiesen an: {householdMembers.find(m => m.id === task.assignedTo)?.name || 'Unbekannt'}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   )
