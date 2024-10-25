@@ -17,24 +17,19 @@ interface UserStats {
   tasks_completed: number
 }
 
-interface TaskHistory {
+interface TaskWithProfile {
   id: string
   title: string
-  completed_by: string
   completed_at: string
-}
-
-interface ProfileData {
-  id: string
-  full_name: string | null
-  email: string
-  points: number
-  tasks_completed: string | null
+  profile: {
+    full_name: string | null
+    email: string
+  }
 }
 
 export default function Statistics() {
   const [stats, setStats] = useState<UserStats[]>([])
-  const [taskHistory, setTaskHistory] = useState<TaskHistory[]>([])
+  const [taskHistory, setTaskHistory] = useState<TaskWithProfile[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -52,14 +47,14 @@ export default function Statistics() {
           return
         }
 
-        // Fetch task history
+        // Fetch task history with profile information
         const { data: tasks, error: tasksError } = await supabase
           .from('tasks')
           .select(`
             id,
             title,
             completed_at,
-            profiles (
+            profile:assigned_to (
               full_name,
               email
             )
@@ -70,16 +65,9 @@ export default function Statistics() {
 
         if (tasksError) throw tasksError
 
-        const formattedHistory = tasks?.map(task => ({
-          id: task.id,
-          title: task.title,
-          completed_by: task.profiles?.full_name || task.profiles?.email || 'Unbekannt',
-          completed_at: task.completed_at
-        })) || []
+        setTaskHistory(tasks || [])
 
-        setTaskHistory(formattedHistory)
-
-        // Fetch user statistics with a simpler query first
+        // Fetch user statistics
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('id, full_name, email, points')
@@ -192,7 +180,9 @@ export default function Statistics() {
                   >
                     <div>
                       <h4 className="font-medium text-[#4A3E4C]">{task.title}</h4>
-                      <p className="text-sm text-gray-500">Erledigt von {task.completed_by}</p>
+                      <p className="text-sm text-gray-500">
+                        Erledigt von {task.profile?.full_name || task.profile?.email.split('@')[0] || 'Unbekannt'}
+                      </p>
                     </div>
                     <div className="text-sm text-gray-500">
                       {format(new Date(task.completed_at), 'PPp', { locale: de })}
