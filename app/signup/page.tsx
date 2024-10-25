@@ -16,67 +16,60 @@ export default function Signup() {
   const router = useRouter()
 
   const handleSignUp = async (e: React.FormEvent) => {
-  e.preventDefault()
-  try {
-    // 1. Erstelle den Benutzer
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: localStorage.getItem('fullName'),
-          avatar_url: localStorage.getItem('profilePicture')
+    e.preventDefault()
+    if (password !== confirmPassword) {
+      setError("Passwörter stimmen nicht überein")
+      return
+    }
+    try {
+      // 1. Erstelle den Haushalt
+      const { data: householdData, error: householdError } = await supabase
+        .from('households')
+        .insert([{
+          name: localStorage.getItem('householdName') || 'Mein Haushalt',
+          type: localStorage.getItem('householdType') || 'wg'
+        }])
+        .select()
+        .single()
+
+      if (householdError) throw householdError
+
+      // 2. Registriere den Benutzer
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: localStorage.getItem('fullName'),
+            avatar_url: localStorage.getItem('profilePicture'),
+            household_id: householdData.id
+          }
         }
-      }
-    })
+      })
 
-    if (signUpError) throw signUpError
-    if (!authData.user) throw new Error("Benutzer konnte nicht erstellt werden")
+      if (signUpError) throw signUpError
+      if (!authData.user) throw new Error("Benutzer konnte nicht erstellt werden")
 
-    // 2. Erstelle den Haushalt
-    const { data: householdData, error: householdError } = await supabase
-      .from('households')
-      .insert([{
-        name: localStorage.getItem('householdName') || 'Mein Haushalt',
-        type: localStorage.getItem('householdType') || 'wg'
-      }])
-      .select()
-      .single()
+      // 3. Erstelle das Profil
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([{
+          id: authData.user.id,
+          email: email,
+          full_name: localStorage.getItem('fullName'),
+          avatar_url: localStorage.getItem('profilePicture'),
+          household_id: householdData.id,
+          points: 0
+        }])
 
-    if (householdError) throw householdError
+      if (profileError) throw profileError
 
-    // 3. Verknüpfe Benutzer mit Haushalt
-    const { error: linkError } = await supabase
-      .from('user_households')
-      .insert([{
-        user_id: authData.user.id,
-        household_id: householdData.id,
-        role: 'admin'
-      }])
-
-    if (linkError) throw linkError
-
-    // 4. Erstelle das Profil
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert([{
-        id: authData.user.id,
-        email: email,
-        full_name: localStorage.getItem('fullName'),
-        avatar_url: localStorage.getItem('profilePicture'),
-        household_id: householdData.id,
-        points: 0
-      }])
-
-    if (profileError) throw profileError
-
-    router.push("/dashboard")
-  } catch (error) {
-    console.error("Signup error:", error)
-    setError(error.message)
+      router.push("/email-confirmation")
+    } catch (error) {
+      console.error("Signup error:", error)
+      setError(error instanceof Error ? error.message : "Ein Fehler ist aufgetreten")
+    }
   }
-}
-
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-accent p-4">
