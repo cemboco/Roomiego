@@ -7,12 +7,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
-
-const defaultItems = [
-  "Milch", "Brot", "Butter", "Eier", "Käse", "Joghurt",
-  "Tomaten", "Gurken", "Salat", "Äpfel", "Bananen",
-  "Nudeln", "Reis", "Kartoffeln", "Zwiebeln", "Knoblauch"
-]
+import { DEFAULT_SHOPPING_ITEMS } from "@/lib/constants"
 
 export default function Signup() {
   const [email, setEmail] = useState("")
@@ -40,6 +35,8 @@ export default function Signup() {
         throw new Error("Benutzer konnte nicht erstellt werden")
       }
 
+      const userId = authData.user.id
+
       // 2. Erstelle einen neuen Haushalt
       const { data: householdData, error: householdError } = await supabase
         .from('households')
@@ -54,12 +51,12 @@ export default function Signup() {
 
       if (householdError) throw householdError
 
-      // 3. Erstelle das Benutzerprofil mit Haushalts-ID
+      // 3. Erstelle das Benutzerprofil
       const { error: profileError } = await supabase
         .from('profiles')
         .insert([
           {
-            id: authData.user.id,
+            id: userId,
             email: email,
             full_name: localStorage.getItem('fullName'),
             avatar_url: localStorage.getItem('profilePicture'),
@@ -69,23 +66,23 @@ export default function Signup() {
 
       if (profileError) throw profileError
 
-      // 4. Verknüpfe Benutzer mit Haushalt in der Zwischentabelle
+      // 4. Verknüpfe Benutzer mit Haushalt
       const { error: userHouseholdError } = await supabase
         .from('user_households')
         .insert([
           {
-            user_id: authData.user.id,
+            user_id: userId,
             household_id: householdData.id,
-            role: 'admin' // Erster Benutzer ist Admin
+            role: 'admin'
           }
         ])
 
       if (userHouseholdError) throw userHouseholdError
 
       // 5. Füge Standard-Einkaufsliste hinzu
-      const shoppingItems = defaultItems.map(name => ({
+      const shoppingItems = DEFAULT_SHOPPING_ITEMS.map(name => ({
         name,
-        created_by: authData.user.id,
+        created_by: userId,
         household_id: householdData.id
       }))
 
