@@ -66,12 +66,13 @@ export default function Signup() {
     if (profileError) throw profileError
 
     // 4. Sende Confirmation-Mail
-    const { error: confirmationError } = await supabase.auth.api.sendMagicLink({
-      email,
-      redirectUrl: '/dashboard'
+    await supabase.auth.updateUser({
+      id: authData.user.id,
+      data: {
+        email: email,
+        confirmed_at: new Date()
+      }
     })
-
-    if (confirmationError) throw confirmationError
 
     router.push("/dashboard")
   } catch (error: any) {
@@ -79,7 +80,6 @@ export default function Signup() {
     setError(error.message)
   }
 }
-
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-accent p-4">
