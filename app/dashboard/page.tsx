@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Bell, Settings, User, ShoppingCart, BarChart3 } from "lucide-react"
+import Link from "next/link"
 import TaskList from "@/components/dashboard/TaskList"
 import Chat from "@/components/dashboard/Chat"
 import { Task, UserProfile } from "@/app/types"
@@ -17,92 +20,92 @@ export default function Dashboard() {
   const [householdMembers, setHouseholdMembers] = useState<UserProfile[]>([])
   const router = useRouter()
 
-useEffect(() => {
-    const checkAuth = async () => {
+  useEffect(() => {
+    const fetchData = async () => {
       try {
         if (!supabase) {
           throw new Error("Supabase client not initialized")
         }
 
+        // Get current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
-        if (sessionError) {
-          throw sessionError
-        }
-
-        if (!session) {
+        if (sessionError || !session) {
           router.replace("/login")
           return
         }
 
+        // Get current user
         const { data: { user }, error: userError } = await supabase.auth.getUser()
         
-        if (userError) {
-          throw userError
-        }
-
-        if (!user) {
+        if (userError || !user) {
           router.replace("/login")
           return
         }
 
         setUser(user)
-        setHouseholdName(user?.user_metadata?.household_name || "Mein Haushalt")
-        
-        // Fetch household members
-        const { data: members, error: membersError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('household_id', user.user_metadata.household_id)
 
-        if (membersError) {
-          console.error("Error fetching household members:", membersError)
-        } else {
-          // Füge den aktuellen Benutzer hinzu, falls er noch nicht in der Liste ist
-          const currentUserInList = members?.some(member => member.id === user.id) || false
-          
-          if (!currentUserInList) {
-            const currentUserProfile = {
-              id: user.id,
-              name: user.user_metadata.full_name || 'Unnamed User',
-              email: user.email,
-              household_id: user.user_metadata.household_id,
-              points: user.user_metadata.points || 0
-            }
-            setHouseholdMembers([currentUserProfile, ...(members || [])])
+        // Get user's household
+        const { data: userHousehold, error: householdError } = await supabase
+          .from('user_households')
+          .select('household:households(*)')
+          .eq('user_id', user.id)
+          .single()
+
+        if (householdError) {
+          console.error("Error fetching household:", householdError)
+          return
+        }
+
+        if (userHousehold?.household) {
+          setHouseholdName(userHousehold.household.name)
+
+          // Fetch household members
+          const { data: members, error: membersError } = await supabase
+            .from('profiles')
+            .select('*')
+            .in('id', (
+              await supabase
+                .from('user_households')
+                .select('user_id')
+                .eq('household_id', userHousehold.household.id)
+            ).data?.map(uh => uh.user_id) || [])
+
+          if (membersError) {
+            console.error("Error fetching household members:", membersError)
           } else {
             setHouseholdMembers(members || [])
           }
-        }
 
-        // Fetch tasks
-        const { data: taskData, error: tasksError } = await supabase
-          .from('tasks')
-          .select('*')
-          .eq('household_id', user.user_metadata.household_id)
-          .order('created_at', { ascending: false })
+          // Fetch tasks
+          const { data: taskData, error: tasksError } = await supabase
+            .from('tasks')
+            .select('*')
+            .eq('household_id', userHousehold.household.id)
+            .order('created_at', { ascending: false })
 
-        if (tasksError) {
-          console.error("Error fetching tasks:", tasksError)
-        } else {
-          setTasks(taskData || [])
+          if (tasksError) {
+            console.error("Error fetching tasks:", tasksError)
+          } else {
+            setTasks(taskData || [])
+          }
         }
 
         setLoading(false)
       } catch (error) {
-        console.error("Authentication error:", error)
-        router.replace("/login")
+        console.error("Error fetching data:", error)
+        setLoading(false)
       }
     }
 
-    checkAuth()
+    fetchData()
 
-    // Set up real-time subscription for tasks
+    // Set up real-time subscriptions
     const tasksSubscription = supabase
       ?.channel('tasks')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, payload => {
         if (payload.eventType === 'INSERT') {
-          setTasks(current => [...current, payload.new as Task])
+          setTasks(current => [payload.new as Task, ...current])
         } else if (payload.eventType === 'UPDATE') {
           setTasks(current => current.map(task => 
             task.id === payload.new.id ? payload.new as Task : task
@@ -113,28 +116,11 @@ useEffect(() => {
       })
       .subscribe()
 
-    // Set up real-time subscription for household members
-    const membersSubscription = supabase
-      ?.channel('profiles')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
-        if (payload.eventType === 'INSERT') {
-          setHouseholdMembers(current => [...current, payload.new as UserProfile])
-        } else if (payload.eventType === 'UPDATE') {
-          setHouseholdMembers(current => current.map(member => 
-            member.id === payload.new.id ? payload.new as UserProfile : member
-          ))
-        } else if (payload.eventType === 'DELETE') {
-          setHouseholdMembers(current => current.filter(member => member.id !== payload.old.id))
-        }
-      })
-      .subscribe()
-
     return () => {
       tasksSubscription?.unsubscribe()
-      membersSubscription?.unsubscribe()
     }
   }, [router])
-  
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#F0ECC9] to-white flex items-center justify-center">
@@ -147,41 +133,20 @@ useEffect(() => {
     <div className="min-h-screen bg-gradient-to-b from-[#F0ECC9] to-white">
       <DashboardHeader />
 
-      {/* Main Content */}
       <main className="pt-24 pb-20 px-4 max-w-7xl mx-auto">
         {/* Welcome Message */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 transform transition-all duration-300 hover:shadow-xl">
-          <h1 className="text-3xl font-bold text-[#4A3E4C] mb-4">
-            Willkommen zurück, {user?.user_metadata?.full_name || 'Mitbewohner'}!
+        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
+          <h1 className="text-3xl font-bold text-[#4A3E4C] mb-2">
+            Willkommen in {householdName}
           </h1>
-          <p className="text-gray-600 text-lg">
-            Schön, dass du da bist. Hier ist der aktuelle Stand in {householdName}:
+          <p className="text-gray-600">
+            Hier kannst du alle Aufgaben und Aktivitäten deines Haushalts verwalten.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-            <div className="bg-[#F0ECC9] p-6 rounded-xl">
-              <h3 className="font-semibold text-[#4A3E4C] mb-2">Offene Aufgaben</h3>
-              <p className="text-2xl font-bold text-[#65C3BA]">
-                {tasks.filter(task => !task.completed).length}
-              </p>
-            </div>
-            <div className="bg-[#F0ECC9] p-6 rounded-xl">
-              <h3 className="font-semibold text-[#4A3E4C] mb-2">Deine Punkte</h3>
-              <p className="text-2xl font-bold text-[#65C3BA]">
-                {user?.user_metadata?.points || 0}
-              </p>
-            </div>
-            <div className="bg-[#F0ECC9] p-6 rounded-xl">
-              <h3 className="font-semibold text-[#4A3E4C] mb-2">Mitbewohner aktiv</h3>
-              <p className="text-2xl font-bold text-[#65C3BA]">
-                {householdMembers.length}
-              </p>
-            </div>
-          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Tasks Section */}
-          <div className="bg-white rounded-2xl shadow-lg p-8 transform transition-all duration-300 hover:shadow-xl">
+          <div className="bg-white rounded-2xl shadow-lg p-8">
             <TaskList 
               tasks={tasks} 
               setTasks={setTasks} 
@@ -191,8 +156,11 @@ useEffect(() => {
           </div>
 
           {/* Chat Section */}
-          <div className="bg-white rounded-2xl shadow-lg p-8 transform transition-all duration-300 hover:shadow-xl">
-            <Chat householdMembers={householdMembers} currentUser={user} />
+          <div className="bg-white rounded-2xl shadow-lg p-8">
+            <Chat 
+              householdMembers={householdMembers} 
+              currentUser={user}
+            />
           </div>
         </div>
       </main>
