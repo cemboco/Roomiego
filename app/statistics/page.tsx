@@ -24,6 +24,16 @@ interface TaskHistory {
   completed_at: string
 }
 
+interface TaskWithProfile {
+  id: string
+  title: string
+  completed_at: string
+  profiles: {
+    full_name: string | null
+    email: string
+  }
+}
+
 export default function Statistics() {
   const [stats, setStats] = useState<UserStats[]>([])
   const [taskHistory, setTaskHistory] = useState<TaskHistory[]>([])
@@ -62,7 +72,7 @@ export default function Statistics() {
 
         if (tasksError) throw tasksError
 
-        const formattedHistory = tasks.map(task => ({
+        const formattedHistory = (tasks as TaskWithProfile[]).map(task => ({
           id: task.id,
           title: task.title,
           completed_by: task.profiles?.full_name || task.profiles?.email || 'Unbekannt',
