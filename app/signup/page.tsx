@@ -7,7 +7,6 @@ import Link from "next/link"
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
-import { DEFAULT_SHOPPING_ITEMS } from "@/lib/constants"
 
 export default function Signup() {
   const [email, setEmail] = useState("")
@@ -23,90 +22,52 @@ export default function Signup() {
       return
     }
     try {
-      // 1. Erstelle den Auth-Benutzer
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-      })
-
-      if (signUpError) throw signUpError
-
-      if (!authData.user) {
-        throw new Error("Benutzer konnte nicht erstellt werden")
-      }
-
-      const userId = authData.user.id
-
-      // 2. Erstelle einen neuen Haushalt
+      // 1. Erstelle den Haushalt
       const { data: householdData, error: householdError } = await supabase
         .from('households')
-        .insert([
-          {
-            name: localStorage.getItem('householdName') || 'Mein Haushalt',
-            type: localStorage.getItem('householdType') || 'wg'
-          }
-        ])
+        .insert([{
+          name: localStorage.getItem('householdName') || 'Mein Haushalt',
+          type: localStorage.getItem('householdType') || 'wg'
+        }])
         .select()
         .single()
 
       if (householdError) throw householdError
 
-      // 3. Erstelle das Benutzerprofil
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([
-          {
-            id: userId,
-            email: email,
+      // 2. Registriere den Benutzer
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
             full_name: localStorage.getItem('fullName'),
             avatar_url: localStorage.getItem('profilePicture'),
-            points: 0
+            household_id: householdData.id
           }
-        ])
-
-      if (profileError) throw profileError
-
-      // 4. Verknüpfe Benutzer mit Haushalt
-      const { error: userHouseholdError } = await supabase
-        .from('user_households')
-        .insert([
-          {
-            user_id: userId,
-            household_id: householdData.id,
-            role: 'admin'
-          }
-        ])
-
-      if (userHouseholdError) throw userHouseholdError
-
-      // 5. Füge Standard-Einkaufsliste hinzu
-      const shoppingItems = DEFAULT_SHOPPING_ITEMS.map(name => ({
-        name,
-        created_by: userId,
-        household_id: householdData.id
-      }))
-
-      const { error: shoppingError } = await supabase
-        .from('shopping_items')
-        .insert(shoppingItems)
-
-      if (shoppingError) throw shoppingError
-
-      // 6. Aktualisiere die Benutzer-Metadaten
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: { 
-          household_id: householdData.id,
-          full_name: localStorage.getItem('fullName'),
-          avatar_url: localStorage.getItem('profilePicture')
         }
       })
 
-      if (updateError) throw updateError
+      if (signUpError) throw signUpError
+      if (!authData.user) throw new Error("Benutzer konnte nicht erstellt werden")
 
-      router.push("/dashboard")
-    } catch (error: any) {
+      // 3. Erstelle das Profil
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([{
+          id: authData.user.id,
+          email: email,
+          full_name: localStorage.getItem('fullName'),
+          avatar_url: localStorage.getItem('profilePicture'),
+          household_id: householdData.id,
+          points: 0
+        }])
+
+      if (profileError) throw profileError
+
+      router.push("/email-confirmation")
+    } catch (error) {
       console.error("Signup error:", error)
-      setError(error.message)
+      setError(error instanceof Error ? error.message : "Ein Fehler ist aufgetreten")
     }
   }
 
