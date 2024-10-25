@@ -17,7 +17,7 @@ export default function Dashboard() {
   const [householdMembers, setHouseholdMembers] = useState<UserProfile[]>([])
   const router = useRouter()
 
-  useEffect(() => {
+useEffect(() => {
     const checkAuth = async () => {
       try {
         if (!supabase) {
@@ -51,14 +51,28 @@ export default function Dashboard() {
         
         // Fetch household members
         const { data: members, error: membersError } = await supabase
-          .from('household_members')
+          .from('profiles')
           .select('*')
           .eq('household_id', user.user_metadata.household_id)
 
         if (membersError) {
           console.error("Error fetching household members:", membersError)
         } else {
-          setHouseholdMembers(members || [])
+          // Füge den aktuellen Benutzer hinzu, falls er noch nicht in der Liste ist
+          const currentUserInList = members?.some(member => member.id === user.id) || false
+          
+          if (!currentUserInList) {
+            const currentUserProfile = {
+              id: user.id,
+              name: user.user_metadata.full_name || 'Unnamed User',
+              email: user.email,
+              household_id: user.user_metadata.household_id,
+              points: user.user_metadata.points || 0
+            }
+            setHouseholdMembers([currentUserProfile, ...(members || [])])
+          } else {
+            setHouseholdMembers(members || [])
+          }
         }
 
         // Fetch tasks
@@ -99,11 +113,28 @@ export default function Dashboard() {
       })
       .subscribe()
 
+    // Set up real-time subscription for household members
+    const membersSubscription = supabase
+      ?.channel('profiles')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
+        if (payload.eventType === 'INSERT') {
+          setHouseholdMembers(current => [...current, payload.new as UserProfile])
+        } else if (payload.eventType === 'UPDATE') {
+          setHouseholdMembers(current => current.map(member => 
+            member.id === payload.new.id ? payload.new as UserProfile : member
+          ))
+        } else if (payload.eventType === 'DELETE') {
+          setHouseholdMembers(current => current.filter(member => member.id !== payload.old.id))
+        }
+      })
+      .subscribe()
+
     return () => {
       tasksSubscription?.unsubscribe()
+      membersSubscription?.unsubscribe()
     }
   }, [router])
-
+  
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#F0ECC9] to-white flex items-center justify-center">
