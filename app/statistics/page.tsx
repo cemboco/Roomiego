@@ -24,15 +24,12 @@ interface TaskHistory {
   completed_at: string
 }
 
-interface TaskWithProfile {
+interface ProfileData {
   id: string
-  title: string
-  completed_at: string
-  assigned_to: string
-  profile: {
-    full_name: string | null
-    email: string
-  }
+  full_name: string | null
+  email: string
+  points: number
+  tasks_completed: string | null
 }
 
 export default function Statistics() {
@@ -55,15 +52,14 @@ export default function Statistics() {
           return
         }
 
-        // Fetch task history with profiles
+        // Fetch task history
         const { data: tasks, error: tasksError } = await supabase
           .from('tasks')
           .select(`
             id,
             title,
             completed_at,
-            assigned_to,
-            profile:profiles!inner(
+            profiles (
               full_name,
               email
             )
@@ -74,43 +70,39 @@ export default function Statistics() {
 
         if (tasksError) throw tasksError
 
-        // Safely type cast and transform the data
-        const typedTasks = tasks as unknown as TaskWithProfile[]
-        const formattedHistory = typedTasks.map(task => ({
+        const formattedHistory = tasks?.map(task => ({
           id: task.id,
           title: task.title,
-          completed_by: task.profile.full_name || task.profile.email || 'Unbekannt',
+          completed_by: task.profiles?.full_name || task.profiles?.email || 'Unbekannt',
           completed_at: task.completed_at
-        }))
+        })) || []
 
         setTaskHistory(formattedHistory)
 
-        // Fetch user statistics
-        const { data: profiles, error: profilesError } = await supabase
+        // Fetch user statistics with a simpler query first
+        const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
-          .select(`
-            id,
-            full_name,
-            email,
-            points,
-            (
-              SELECT COUNT(*)
-              FROM tasks
-              WHERE tasks.assigned_to = profiles.id
-              AND tasks.completed = true
-            ) as tasks_completed
-          `)
-          .order('points', { ascending: false })
+          .select('id, full_name, email, points')
 
         if (profilesError) throw profilesError
 
-        const statsData = profiles.map(profile => ({
-          id: profile.id,
-          name: profile.full_name || profile.email.split('@')[0],
-          points: profile.points || 0,
-          tasks_completed: parseInt(profile.tasks_completed) || 0
-        }))
+        // Then fetch task counts separately
+        const statsPromises = profilesData.map(async (profile) => {
+          const { count } = await supabase
+            .from('tasks')
+            .select('*', { count: 'exact', head: true })
+            .eq('assigned_to', profile.id)
+            .eq('completed', true)
 
+          return {
+            id: profile.id,
+            name: profile.full_name || profile.email.split('@')[0],
+            points: profile.points || 0,
+            tasks_completed: count || 0
+          }
+        })
+
+        const statsData = await Promise.all(statsPromises)
         setStats(statsData)
         setLoading(false)
       } catch (error) {
