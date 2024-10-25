@@ -28,7 +28,8 @@ interface TaskWithProfile {
   id: string
   title: string
   completed_at: string
-  profiles: {
+  assigned_to: string
+  profile: {
     full_name: string | null
     email: string
   }
@@ -54,14 +55,15 @@ export default function Statistics() {
           return
         }
 
-        // Fetch task history
+        // Fetch task history with profiles
         const { data: tasks, error: tasksError } = await supabase
           .from('tasks')
           .select(`
             id,
             title,
             completed_at,
-            profiles!assigned_to (
+            assigned_to,
+            profile:profiles!inner(
               full_name,
               email
             )
@@ -72,24 +74,44 @@ export default function Statistics() {
 
         if (tasksError) throw tasksError
 
-        const formattedHistory = (tasks as TaskWithProfile[]).map(task => ({
+        // Safely type cast and transform the data
+        const typedTasks = tasks as unknown as TaskWithProfile[]
+        const formattedHistory = typedTasks.map(task => ({
           id: task.id,
           title: task.title,
-          completed_by: task.profiles?.full_name || task.profiles?.email || 'Unbekannt',
+          completed_by: task.profile.full_name || task.profile.email || 'Unbekannt',
           completed_at: task.completed_at
         }))
 
         setTaskHistory(formattedHistory)
 
-        // Example stats data (replace with real data in production)
-        const mockStats = [
-          { id: '1', name: 'Anna', points: 150, tasks_completed: 15 },
-          { id: '2', name: 'Max', points: 120, tasks_completed: 12 },
-          { id: '3', name: 'Lisa', points: 90, tasks_completed: 9 },
-          { id: '4', name: 'Tom', points: 80, tasks_completed: 8 },
-        ]
+        // Fetch user statistics
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            full_name,
+            email,
+            points,
+            (
+              SELECT COUNT(*)
+              FROM tasks
+              WHERE tasks.assigned_to = profiles.id
+              AND tasks.completed = true
+            ) as tasks_completed
+          `)
+          .order('points', { ascending: false })
 
-        setStats(mockStats)
+        if (profilesError) throw profilesError
+
+        const statsData = profiles.map(profile => ({
+          id: profile.id,
+          name: profile.full_name || profile.email.split('@')[0],
+          points: profile.points || 0,
+          tasks_completed: parseInt(profile.tasks_completed) || 0
+        }))
+
+        setStats(statsData)
         setLoading(false)
       } catch (error) {
         console.error("Error fetching statistics:", error)
@@ -123,8 +145,8 @@ export default function Statistics() {
                 <Trophy className="h-6 w-6 text-[#F2B05E]" />
                 <h3 className="font-semibold text-[#4A3E4C]">Top Performer</h3>
               </div>
-              <p className="text-2xl font-bold text-[#65C3BA]">{stats[0]?.name}</p>
-              <p className="text-sm text-gray-600">{stats[0]?.points} Punkte</p>
+              <p className="text-2xl font-bold text-[#65C3BA]">{stats[0]?.name || 'Noch keine Daten'}</p>
+              <p className="text-sm text-gray-600">{stats[0]?.points || 0} Punkte</p>
             </div>
 
             <div className="bg-[#F0ECC9] p-6 rounded-xl">
@@ -133,14 +155,14 @@ export default function Statistics() {
                 <h3 className="font-semibold text-[#4A3E4C]">Meiste Aufgaben</h3>
               </div>
               <p className="text-2xl font-bold text-[#65C3BA]">
-                {stats.reduce((max, user) => 
+                {stats.length > 0 ? stats.reduce((max, user) => 
                   user.tasks_completed > max.tasks_completed ? user : max
-                ).name}
+                ).name : 'Noch keine Daten'}
               </p>
               <p className="text-sm text-gray-600">
-                {stats.reduce((max, user) => 
+                {stats.length > 0 ? stats.reduce((max, user) => 
                   user.tasks_completed > max.tasks_completed ? user : max
-                ).tasks_completed} Aufgaben
+                ).tasks_completed : 0} Aufgaben
               </p>
             </div>
           </div>
@@ -170,20 +192,26 @@ export default function Statistics() {
               <h3 className="text-xl font-semibold text-[#4A3E4C]">Aufgabenverlauf</h3>
             </div>
             <div className="space-y-4">
-              {taskHistory.map(task => (
-                <div 
-                  key={task.id}
-                  className="flex items-center justify-between p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
-                >
-                  <div>
-                    <h4 className="font-medium text-[#4A3E4C]">{task.title}</h4>
-                    <p className="text-sm text-gray-500">Erledigt von {task.completed_by}</p>
+              {taskHistory.length > 0 ? (
+                taskHistory.map(task => (
+                  <div 
+                    key={task.id}
+                    className="flex items-center justify-between p-4 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <div>
+                      <h4 className="font-medium text-[#4A3E4C]">{task.title}</h4>
+                      <p className="text-sm text-gray-500">Erledigt von {task.completed_by}</p>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {format(new Date(task.completed_at), 'PPp', { locale: de })}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    {format(new Date(task.completed_at), 'PPp', { locale: de })}
-                  </div>
+                ))
+              ) : (
+                <div className="text-center text-gray-500 py-4">
+                  Noch keine Aufgaben erledigt
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
