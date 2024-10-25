@@ -21,13 +21,20 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
   const [dueDate, setDueDate] = useState("")
   const [quickActionMinutes, setQuickActionMinutes] = useState("")
 
+  // Setze den aktuellen Benutzer als Standard-Auswahl
+  useEffect(() => {
+    if (currentUser && !selectedMember) {
+      setSelectedMember(currentUser.id)
+    }
+  }, [currentUser, selectedMember])
+
   const handleAddTask = async () => {
-    if (!newTask || !selectedMember) return
+    if (!newTask) return
 
     try {
       const task = {
         title: newTask,
-        assigned_to: selectedMember,
+        assigned_to: selectedMember || currentUser.id, // Fallback zum aktuellen Benutzer
         created_by: currentUser.id,
         household_id: currentUser.user_metadata.household_id,
         due_date: dueDate || null,
@@ -46,7 +53,7 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
 
       setTasks([...tasks, data])
       setNewTask("")
-      setSelectedMember("")
+      setSelectedMember(currentUser.id) // Zurück zum aktuellen Benutzer
       setDueDate("")
       setQuickActionMinutes("")
 
