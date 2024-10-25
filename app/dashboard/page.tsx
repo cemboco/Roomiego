@@ -3,14 +3,11 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Bell, Settings, User, ShoppingCart, BarChart3 } from "lucide-react"
-import Link from "next/link"
+import DashboardHeader from "@/components/shared/DashboardHeader"
+import DashboardFooter from "@/components/shared/DashboardFooter"
 import TaskList from "@/components/dashboard/TaskList"
 import Chat from "@/components/dashboard/Chat"
 import { Task, UserProfile } from "@/app/types"
-import DashboardHeader from "@/components/shared/DashboardHeader"
-import DashboardFooter from "@/components/shared/DashboardFooter"
 
 interface Household {
   id: string
@@ -18,7 +15,7 @@ interface Household {
   type: 'wg' | 'family' | 'couple'
 }
 
-interface UserHousehold {
+interface UserHouseholdData {
   household: Household
 }
 
@@ -73,8 +70,10 @@ export default function Dashboard() {
           return
         }
 
-        if (userHousehold?.household) {
-          setHouseholdName(userHousehold.household.name)
+        const typedUserHousehold = userHousehold as UserHouseholdData
+
+        if (typedUserHousehold?.household) {
+          setHouseholdName(typedUserHousehold.household.name)
 
           // Fetch household members
           const { data: members, error: membersError } = await supabase
@@ -84,7 +83,7 @@ export default function Dashboard() {
               await supabase
                 .from('user_households')
                 .select('user_id')
-                .eq('household_id', userHousehold.household.id)
+                .eq('household_id', typedUserHousehold.household.id)
             ).data?.map(uh => uh.user_id) || [])
 
           if (membersError) {
@@ -97,7 +96,7 @@ export default function Dashboard() {
           const { data: taskData, error: tasksError } = await supabase
             .from('tasks')
             .select('*')
-            .eq('household_id', userHousehold.household.id)
+            .eq('household_id', typedUserHousehold.household.id)
             .order('created_at', { ascending: false })
 
           if (tasksError) {
