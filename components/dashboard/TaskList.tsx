@@ -135,14 +135,21 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
           onChange={(e) => setNewTask(e.target.value)}
           className="w-full"
         />
-        <Select value={selectedMember} onValueChange={setSelectedMember}>
+        <Select 
+          value={selectedMember || currentUser?.id} 
+          onValueChange={setSelectedMember}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Mitglied auswählen" />
           </SelectTrigger>
           <SelectContent>
             {householdMembers.map(member => (
-              <SelectItem key={member.id} value={member.id}>
-                {member.name}
+              <SelectItem 
+                key={member.id} 
+                value={member.id}
+                className="cursor-pointer"
+              >
+                {member.name || member.email}
               </SelectItem>
             ))}
           </SelectContent>
