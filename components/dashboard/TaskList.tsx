@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Task, UserProfile } from "@/app/types"
-import { Calendar, Clock, Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Calendar, Clock } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
 interface TaskListProps {
@@ -21,6 +21,7 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
   const [dueDate, setDueDate] = useState("")
   const [quickActionMinutes, setQuickActionMinutes] = useState("")
 
+  // Setze den aktuellen Benutzer als Standard-Auswahl
   useEffect(() => {
     if (currentUser?.id && !selectedMember) {
       setSelectedMember(currentUser.id)
@@ -56,6 +57,7 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
       setDueDate("")
       setQuickActionMinutes("")
 
+      // Füge Punkte für das Erstellen einer Aufgabe hinzu
       await supabase.rpc('increment_user_points', {
         user_id: currentUser.id,
         points_to_add: 5
@@ -85,6 +87,7 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
         )
       )
 
+      // Füge Punkte für das Abschließen einer Aufgabe hinzu
       await supabase.rpc('increment_user_points', {
         user_id: currentUser.id,
         points_to_add: 10
@@ -121,28 +124,24 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
           className="w-full"
         />
         
-        {householdMembers.length > 0 ? (
-          <Select 
-            value={selectedMember || currentUser?.id} 
-            onValueChange={setSelectedMember}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Mitglied auswählen" />
-            </SelectTrigger>
-            <SelectContent>
-              {householdMembers.map(member => (
-                <SelectItem 
-                  key={member.id} 
-                  value={member.id}
-                >
-                  {member.name || member.email}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <div className="text-sm text-gray-500">Keine Haushaltsmitglieder gefunden</div>
-        )}
+        <Select 
+          value={selectedMember || currentUser?.id} 
+          onValueChange={setSelectedMember}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Mitglied auswählen" />
+          </SelectTrigger>
+          <SelectContent>
+            {householdMembers.map(member => (
+              <SelectItem 
+                key={member.id} 
+                value={member.id}
+              >
+                {member.full_name || member.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <div className="flex gap-4">
           <Input
@@ -208,12 +207,12 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
             <div className="text-sm text-gray-500 space-y-1">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                {task.dueDate || 'Kein Datum'}
+                {task.due_date ? new Date(task.due_date).toLocaleDateString('de-DE') : 'Kein Datum'}
               </div>
-              {task.quickActionMinutes && (
+              {task.quick_action_minutes && (
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  {task.quickActionMinutes} Minuten
+                  {task.quick_action_minutes} Minuten
                 </div>
               )}
             </div>
