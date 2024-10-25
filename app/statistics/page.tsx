@@ -45,7 +45,8 @@ export default function Statistics() {
             id,
             title,
             completed_at,
-            profiles!tasks_assigned_to_fkey (
+            assigned_to (
+              id,
               full_name,
               email
             )
@@ -60,7 +61,7 @@ export default function Statistics() {
           id: task.id,
           title: task.title,
           completed_at: task.completed_at,
-          user_name: task.profiles.full_name || task.profiles.email.split('@')[0]
+          user_name: task.assigned_to?.full_name || task.assigned_to?.email.split('@')[0] || 'Unbekannt'
         }))
 
         setTaskHistory(formattedTasks)
