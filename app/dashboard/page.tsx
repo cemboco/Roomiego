@@ -12,6 +12,16 @@ import { Task, UserProfile } from "@/app/types"
 import DashboardHeader from "@/components/shared/DashboardHeader"
 import DashboardFooter from "@/components/shared/DashboardFooter"
 
+interface Household {
+  id: string
+  name: string
+  type: 'wg' | 'family' | 'couple'
+}
+
+interface UserHousehold {
+  household: Household
+}
+
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [householdName, setHouseholdName] = useState("")
@@ -48,7 +58,13 @@ export default function Dashboard() {
         // Get user's household
         const { data: userHousehold, error: householdError } = await supabase
           .from('user_households')
-          .select('household:households(*)')
+          .select(`
+            household:households (
+              id,
+              name,
+              type
+            )
+          `)
           .eq('user_id', user.id)
           .single()
 
