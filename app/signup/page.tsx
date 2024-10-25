@@ -80,7 +80,6 @@ export default function Signup() {
     setError(error.message)
   }
 }
-
   return (
     <main className="flex min-h-screen items-center justify-center bg-accent p-4">
       <div className="w-full max-w-[500px] bg-white rounded-lg shadow-lg p-8">
