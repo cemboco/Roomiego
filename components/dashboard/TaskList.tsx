@@ -21,7 +21,6 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
   const [dueDate, setDueDate] = useState("")
   const [quickActionMinutes, setQuickActionMinutes] = useState("")
 
-  // Setze den aktuellen Benutzer als Standard-Auswahl
   useEffect(() => {
     if (currentUser?.id && !selectedMember) {
       setSelectedMember(currentUser.id)
@@ -57,7 +56,7 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
       setDueDate("")
       setQuickActionMinutes("")
 
-      // Füge Punkte für das Erstellen einer Aufgabe hinzu
+      // Punkte für das Erstellen einer Aufgabe
       await supabase.rpc('increment_user_points', {
         user_id: currentUser.id,
         points_to_add: 5
@@ -87,7 +86,7 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
         )
       )
 
-      // Füge Punkte für das Abschließen einer Aufgabe hinzu
+      // Punkte für das Abschließen einer Aufgabe
       await supabase.rpc('increment_user_points', {
         user_id: currentUser.id,
         points_to_add: 10
@@ -197,7 +196,7 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
                     onClick={() => handleDeleteTask(task.id)}
                     variant="outline"
                     size="sm"
-                    className="text-red-600 hover:text-red-700"
+                    className="text-red-500 hover:text-red-700"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
