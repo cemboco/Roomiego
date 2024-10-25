@@ -21,9 +21,8 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
   const [dueDate, setDueDate] = useState("")
   const [quickActionMinutes, setQuickActionMinutes] = useState("")
 
-  // Setze den aktuellen Benutzer als Standard-Auswahl
   useEffect(() => {
-    if (currentUser && !selectedMember) {
+    if (currentUser?.id && !selectedMember) {
       setSelectedMember(currentUser.id)
     }
   }, [currentUser, selectedMember])
@@ -34,7 +33,7 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
     try {
       const task = {
         title: newTask,
-        assigned_to: selectedMember || currentUser.id, // Fallback zum aktuellen Benutzer
+        assigned_to: selectedMember || currentUser.id,
         created_by: currentUser.id,
         household_id: currentUser.user_metadata.household_id,
         due_date: dueDate || null,
@@ -53,11 +52,10 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
 
       setTasks([...tasks, data])
       setNewTask("")
-      setSelectedMember(currentUser.id) // Zurück zum aktuellen Benutzer
+      setSelectedMember(currentUser.id)
       setDueDate("")
       setQuickActionMinutes("")
 
-      // Update points for task creation
       await supabase.rpc('increment_user_points', {
         user_id: currentUser.id,
         points_to_add: 5
@@ -87,7 +85,6 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
         )
       )
 
-      // Award points for completing task
       await supabase.rpc('increment_user_points', {
         user_id: currentUser.id,
         points_to_add: 10
@@ -116,7 +113,6 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
     <div>
       <h2 className="text-2xl font-semibold text-[#4A3E4C] mb-6">Aufgaben</h2>
 
-      {/* Add Task Form */}
       <div className="space-y-4 mb-8">
         <Input
           placeholder="Neue Aufgabe"
@@ -124,25 +120,30 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
           onChange={(e) => setNewTask(e.target.value)}
           className="w-full"
         />
-        <Select 
-          value={selectedMember || currentUser?.id} 
-          onValueChange={setSelectedMember}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Mitglied auswählen" />
-          </SelectTrigger>
-          <SelectContent>
-            {householdMembers.map(member => (
-              <SelectItem 
-                key={member.id} 
-                value={member.id}
-                className="cursor-pointer"
-              >
-                {member.name || member.email}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        
+        {householdMembers.length > 0 ? (
+          <Select 
+            value={selectedMember || currentUser?.id} 
+            onValueChange={setSelectedMember}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Mitglied auswählen" />
+            </SelectTrigger>
+            <SelectContent>
+              {householdMembers.map(member => (
+                <SelectItem 
+                  key={member.id} 
+                  value={member.id}
+                >
+                  {member.name || member.email}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <div className="text-sm text-gray-500">Keine Haushaltsmitglieder gefunden</div>
+        )}
+
         <div className="flex gap-4">
           <Input
             type="date"
@@ -159,6 +160,7 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
             className="flex-1"
           />
         </div>
+        
         <Button 
           onClick={handleAddTask} 
           className="w-full bg-[#65C3BA] hover:bg-[#4A3E4C] transition-all duration-300"
@@ -168,7 +170,6 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
         </Button>
       </div>
 
-      {/* Task List */}
       <div className="space-y-4">
         {tasks.map(task => (
           <div
