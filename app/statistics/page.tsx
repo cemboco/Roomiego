@@ -5,13 +5,11 @@ import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 import DashboardHeader from "@/components/shared/DashboardHeader"
 import DashboardFooter from "@/components/shared/DashboardFooter"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 interface CompletedTask {
   id: string
   title: string
   completed_at: string
-  user_name: string
 }
 
 export default function Statistics() {
@@ -29,42 +27,16 @@ export default function Statistics() {
           return
         }
 
-        // Hole die household_id des aktuellen Benutzers
-        const { data: userHousehold } = await supabase
-          .from('user_households')
-          .select('household_id')
-          .eq('user_id', session.user.id)
-          .single()
-
-        if (!userHousehold) return
-
-        // Hole alle erledigten Aufgaben mit Benutzernamen
+        // Hole die erledigten Aufgaben
         const { data: completedTasks, error } = await supabase
           .from('tasks')
-          .select(`
-            id,
-            title,
-            completed_at,
-            assigned_to (
-              id,
-              full_name,
-              email
-            )
-          `)
-          .eq('household_id', userHousehold.household_id)
+          .select('id, title, completed_at')
           .eq('completed', true)
           .order('completed_at', { ascending: false })
 
         if (error) throw error
 
-        const formattedTasks = completedTasks.map(task => ({
-          id: task.id,
-          title: task.title,
-          completed_at: task.completed_at,
-          user_name: task.assigned_to?.full_name || task.assigned_to?.email.split('@')[0] || 'Unbekannt'
-        }))
-
-        setTaskHistory(formattedTasks)
+        setTaskHistory(completedTasks || [])
         setLoading(false)
       } catch (error) {
         console.error("Error fetching statistics:", error)
@@ -101,16 +73,18 @@ export default function Statistics() {
                   className="p-4 bg-gray-50 rounded-lg border border-gray-200"
                 >
                   <div className="flex justify-between items-center">
-                    <div>
-                      <h3 className="font-medium text-[#4A3E4C]">{task.title}</h3>
-                      <p className="text-sm text-gray-500">Erledigt von: {task.user_name}</p>
-                    </div>
+                    <h3 className="font-medium text-[#4A3E4C]">{task.title}</h3>
                     <p className="text-sm text-gray-500">
                       {new Date(task.completed_at).toLocaleDateString('de-DE')}
                     </p>
                   </div>
                 </div>
               ))}
+              {taskHistory.length === 0 && (
+                <p className="text-gray-500 text-center py-4">
+                  Noch keine Aufgaben erledigt
+                </p>
+              )}
             </div>
           </div>
         </div>
