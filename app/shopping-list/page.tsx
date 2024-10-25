@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import DashboardHeader from "@/components/shared/DashboardHeader"
 import DashboardFooter from "@/components/shared/DashboardFooter"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Calendar, Tag } from "lucide-react"
 
 interface ShoppingItem {
   id: string
@@ -16,11 +16,19 @@ interface ShoppingItem {
   completed: boolean
   created_by: string
   household_id: string
+  due_date: string | null
 }
+
+const quickSuggestions = [
+  "Tomaten", "Frischkäse", "Eier", "Zucchini", "Milch", "Brot",
+  "Butter", "Käse", "Joghurt", "Bananen", "Äpfel", "Kartoffeln",
+  "Zwiebeln", "Knoblauch", "Pasta", "Reis"
+]
 
 export default function ShoppingList() {
   const [items, setItems] = useState<ShoppingItem[]>([])
   const [newItem, setNewItem] = useState("")
+  const [dueDate, setDueDate] = useState("")
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -89,15 +97,39 @@ export default function ShoppingList() {
             name: newItem.trim(),
             completed: false,
             created_by: user?.id,
-            household_id: user?.user_metadata?.household_id
+            household_id: user?.user_metadata?.household_id,
+            due_date: dueDate || null
           }
         ])
 
       if (error) throw error
       
       setNewItem("")
+      setDueDate("")
     } catch (error) {
       console.error("Error adding item:", error)
+    }
+  }
+
+  const handleQuickAdd = async (suggestion: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      const { error } = await supabase
+        .from('shopping_items')
+        .insert([
+          {
+            name: suggestion,
+            completed: false,
+            created_by: user?.id,
+            household_id: user?.user_metadata?.household_id,
+            due_date: dueDate || null
+          }
+        ])
+
+      if (error) throw error
+    } catch (error) {
+      console.error("Error adding quick item:", error)
     }
   }
 
@@ -141,23 +173,53 @@ export default function ShoppingList() {
 
       <main className="pt-24 pb-20 px-4 max-w-7xl mx-auto">
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
-          <h1 className="text-3xl font-bold text-[#4A3E4C] mb-6">Einkaufsliste</h1>
+          <h1 className="text-3xl font-bold text-[#4A3E4C] mb-2">Was muss eingekauft werden?</h1>
+          <p className="text-gray-600 mb-8">Plane deinen Einkauf und teile die Liste mit deinen Mitbewohnern.</p>
           
-          <form onSubmit={handleAddItem} className="flex gap-4 mb-8">
-            <Input
-              type="text"
-              placeholder="Neuen Artikel hinzufügen"
-              value={newItem}
-              onChange={(e) => setNewItem(e.target.value)}
-              className="flex-1"
-            />
-            <Button 
-              type="submit"
-              className="bg-[#65C3BA] hover:bg-[#4A3E4C] transition-all duration-300"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+          <form onSubmit={handleAddItem} className="space-y-4 mb-8">
+            <div className="flex gap-4">
+              <Input
+                type="text"
+                placeholder="Neuen Artikel hinzufügen"
+                value={newItem}
+                onChange={(e) => setNewItem(e.target.value)}
+                className="flex-1"
+              />
+              <Input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-48"
+              />
+              <Button 
+                type="submit"
+                className="bg-[#65C3BA] hover:bg-[#4A3E4C] transition-all duration-300"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </form>
+
+          {/* Quick Suggestions */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Tag className="h-5 w-5 text-[#65C3BA]" />
+              <h2 className="text-lg font-semibold text-[#4A3E4C]">Schnellauswahl</h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {quickSuggestions.map(suggestion => (
+                <Button
+                  key={suggestion}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAdd(suggestion)}
+                  className="hover:bg-[#65C3BA] hover:text-white transition-all duration-300"
+                >
+                  {suggestion}
+                </Button>
+              ))}
+            </div>
+          </div>
 
           <div className="space-y-4">
             {items.map(item => (
@@ -172,9 +234,17 @@ export default function ShoppingList() {
                     checked={item.completed}
                     onCheckedChange={(checked) => toggleItem(item.id, checked as boolean)}
                   />
-                  <span className={item.completed ? 'line-through text-gray-500' : ''}>
-                    {item.name}
-                  </span>
+                  <div>
+                    <span className={item.completed ? 'line-through text-gray-500' : ''}>
+                      {item.name}
+                    </span>
+                    {item.due_date && (
+                      <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                        <Calendar className="h-4 w-4" />
+                        {new Date(item.due_date).toLocaleDateString('de-DE')}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <Button
                   variant="ghost"
