@@ -16,6 +16,10 @@ interface Household {
   type: 'wg' | 'family' | 'couple'
 }
 
+interface UserHouseholdResponse {
+  households: Household
+}
+
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [householdName, setHouseholdName] = useState("")
@@ -68,7 +72,7 @@ export default function Dashboard() {
         }
 
         if (userHousehold?.households) {
-          const household = userHousehold.households as Household
+          const household = userHousehold.households as unknown as Household
           setHouseholdName(household.name)
 
           // Fetch household members
