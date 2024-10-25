@@ -8,6 +8,12 @@ import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
+const defaultItems = [
+  "Milch", "Brot", "Butter", "Eier", "Käse", "Joghurt",
+  "Tomaten", "Gurken", "Salat", "Äpfel", "Bananen",
+  "Nudeln", "Reis", "Kartoffeln", "Zwiebeln", "Knoblauch"
+]
+
 export default function Signup() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -29,15 +35,18 @@ export default function Signup() {
       })
 
       if (signUpError) throw signUpError
-      if (!authData.user) throw new Error("No user data returned")
+
+      if (!authData.user) {
+        throw new Error("Benutzer konnte nicht erstellt werden")
+      }
 
       // 2. Erstelle einen neuen Haushalt
       const { data: householdData, error: householdError } = await supabase
         .from('households')
         .insert([
           {
-            name: localStorage.getItem('householdName'),
-            type: localStorage.getItem('householdType')
+            name: localStorage.getItem('householdName') || 'Mein Haushalt',
+            type: localStorage.getItem('householdType') || 'wg'
           }
         ])
         .select()
@@ -45,7 +54,7 @@ export default function Signup() {
 
       if (householdError) throw householdError
 
-      // 3. Erstelle das Benutzerprofil
+      // 3. Erstelle das Benutzerprofil mit Haushalts-ID
       const { error: profileError } = await supabase
         .from('profiles')
         .insert([
@@ -60,7 +69,7 @@ export default function Signup() {
 
       if (profileError) throw profileError
 
-      // 4. Verknüpfe Benutzer mit Haushalt
+      // 4. Verknüpfe Benutzer mit Haushalt in der Zwischentabelle
       const { error: userHouseholdError } = await supabase
         .from('user_households')
         .insert([
@@ -73,9 +82,22 @@ export default function Signup() {
 
       if (userHouseholdError) throw userHouseholdError
 
-      // 5. Aktualisiere die Benutzer-Metadaten
+      // 5. Füge Standard-Einkaufsliste hinzu
+      const shoppingItems = defaultItems.map(name => ({
+        name,
+        created_by: authData.user.id,
+        household_id: householdData.id
+      }))
+
+      const { error: shoppingError } = await supabase
+        .from('shopping_items')
+        .insert(shoppingItems)
+
+      if (shoppingError) throw shoppingError
+
+      // 6. Aktualisiere die Benutzer-Metadaten
       const { error: updateError } = await supabase.auth.updateUser({
-        data: {
+        data: { 
           household_id: householdData.id,
           full_name: localStorage.getItem('fullName'),
           avatar_url: localStorage.getItem('profilePicture')
@@ -83,24 +105,6 @@ export default function Signup() {
       })
 
       if (updateError) throw updateError
-
-      // 6. Füge einige Standard-Einkaufsvorschläge hinzu
-      const defaultItems = [
-        "Milch", "Brot", "Eier", "Butter", "Käse",
-        "Tomaten", "Gurken", "Kartoffeln", "Äpfel", "Bananen"
-      ]
-
-      const shoppingItems = defaultItems.map(name => ({
-        name,
-        created_by: authData.user.id,
-        household_id: householdData.id
-      }))
-
-      const { error: itemsError } = await supabase
-        .from('shopping_items')
-        .insert(shoppingItems)
-
-      if (itemsError) console.error("Error adding default shopping items:", itemsError)
 
       router.push("/dashboard")
     } catch (error: any) {
@@ -110,12 +114,10 @@ export default function Signup() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[#F0ECC9] to-white p-4">
-      <div className="w-full max-w-[500px] bg-white rounded-2xl shadow-lg p-8">
-        <div className="text-4xl font-bold bg-gradient-to-r from-[#4A3E4C] to-[#65C3BA] bg-clip-text text-transparent mb-4 text-center">
-          Roomie
-        </div>
-        <h1 className="text-2xl font-semibold text-[#4A3E4C] mb-6 text-center">
+    <main className="flex min-h-screen items-center justify-center bg-accent p-4">
+      <div className="w-full max-w-[500px] bg-white rounded-lg shadow-lg p-8">
+        <div className="text-4xl font-bold text-primary mb-4 text-center">Roomie</div>
+        <h1 className="text-2xl font-semibold text-primary mb-6 text-center">
           Erstelle dein Konto
         </h1>
         <form className="w-full" onSubmit={handleSignUp}>
@@ -144,13 +146,13 @@ export default function Signup() {
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
           {error && <p className="text-red-500 mb-4">{error}</p>}
-          <Button className="w-full bg-[#65C3BA] hover:bg-[#4A3E4C] transition-all duration-300" type="submit">
+          <Button className="w-full bg-secondary hover:bg-secondary/90 text-white" type="submit">
             <UserPlus className="mr-2 h-4 w-4" />
             Registrieren
           </Button>
         </form>
-        <div className="mt-6 text-sm text-[#4A3E4C] text-center">
-          Bereits ein Konto? <Link href="/login" className="text-[#65C3BA] hover:underline">Hier einloggen</Link>
+        <div className="mt-6 text-sm text-primary text-center">
+          Bereits ein Konto? <Link href="/login" className="text-secondary hover:underline">Hier einloggen</Link>
         </div>
       </div>
     </main>
