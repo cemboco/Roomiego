@@ -8,6 +8,7 @@ import DashboardFooter from "@/components/shared/DashboardFooter"
 import TaskList from "@/components/dashboard/TaskList"
 import Chat from "@/components/dashboard/Chat"
 import { Task, UserProfile } from "@/app/types"
+import { Loader2 } from "lucide-react"
 
 interface Household {
   id: string
@@ -52,6 +53,18 @@ export default function Dashboard() {
 
         setUser(user)
 
+        // Get user's profile
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError) {
+          console.error("Error fetching profile:", profileError)
+          return
+        }
+
         // Get user's household
         const { data: userHousehold, error: householdError } = await supabase
           .from('user_households')
@@ -70,10 +83,8 @@ export default function Dashboard() {
           return
         }
 
-        const typedUserHousehold = userHousehold as UserHouseholdData
-
-        if (typedUserHousehold?.household) {
-          setHouseholdName(typedUserHousehold.household.name)
+        if (userHousehold?.household) {
+          setHouseholdName(userHousehold.household.name)
 
           // Fetch household members
           const { data: members, error: membersError } = await supabase
@@ -83,7 +94,7 @@ export default function Dashboard() {
               await supabase
                 .from('user_households')
                 .select('user_id')
-                .eq('household_id', typedUserHousehold.household.id)
+                .eq('household_id', userHousehold.household.id)
             ).data?.map(uh => uh.user_id) || [])
 
           if (membersError) {
@@ -96,7 +107,7 @@ export default function Dashboard() {
           const { data: taskData, error: tasksError } = await supabase
             .from('tasks')
             .select('*')
-            .eq('household_id', typedUserHousehold.household.id)
+            .eq('household_id', userHousehold.household.id)
             .order('created_at', { ascending: false })
 
           if (tasksError) {
@@ -139,7 +150,10 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#F0ECC9] to-white flex items-center justify-center">
-        <div className="text-primary text-xl">Loading...</div>
+        <div className="flex items-center gap-3">
+          <Loader2 className="h-6 w-6 animate-spin text-[#65C3BA]" />
+          <span className="text-xl text-[#4A3E4C]">Laden...</span>
+        </div>
       </div>
     )
   }
@@ -150,7 +164,7 @@ export default function Dashboard() {
 
       <main className="pt-24 pb-20 px-4 max-w-7xl mx-auto">
         {/* Welcome Message */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
+        <div className="bg-white rounded-2xl shadow-lg p-8 mb-8 transform transition-all duration-300 hover:shadow-xl">
           <h1 className="text-3xl font-bold text-[#4A3E4C] mb-2">
             Willkommen in {householdName}
           </h1>
@@ -161,7 +175,7 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Tasks Section */}
-          <div className="bg-white rounded-2xl shadow-lg p-8">
+          <div className="bg-white rounded-2xl shadow-lg p-8 transform transition-all duration-300 hover:shadow-xl">
             <TaskList 
               tasks={tasks} 
               setTasks={setTasks} 
@@ -171,7 +185,7 @@ export default function Dashboard() {
           </div>
 
           {/* Chat Section */}
-          <div className="bg-white rounded-2xl shadow-lg p-8">
+          <div className="bg-white rounded-2xl shadow-lg p-8 transform transition-all duration-300 hover:shadow-xl">
             <Chat 
               householdMembers={householdMembers} 
               currentUser={user}
