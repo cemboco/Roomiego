@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Task, UserProfile } from "@/app/types"
-import { Calendar, Clock, Plus, Trash2, CheckCircle } from "lucide-react"
+import { Calendar, Clock, Plus, Trash2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
 interface TaskListProps {
@@ -71,7 +71,10 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
     try {
       const { error } = await supabase
         .from('tasks')
-        .update({ completed: true, completed_at: new Date().toISOString() })
+        .update({ 
+          completed: true,
+          completed_at: new Date().toISOString()
+        })
         .eq('id', taskId)
 
       if (error) throw error
@@ -84,25 +87,11 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
         )
       )
 
-      // Add points for completing task
+      // Award points for completing task
       await supabase.rpc('increment_user_points', {
         user_id: currentUser.id,
         points_to_add: 10
       })
-
-      // Add to task history
-      const task = tasks.find(t => t.id === taskId)
-      if (task) {
-        await supabase
-          .from('task_history')
-          .insert([{
-            task_id: taskId,
-            task_name: task.title,
-            completed_by: currentUser.id,
-            household_id: currentUser.user_metadata.household_id,
-            points_earned: 10
-          }])
-      }
     } catch (error) {
       console.error("Error completing task:", error)
     }
@@ -181,63 +170,54 @@ export default function TaskList({ tasks, setTasks, householdMembers, currentUse
 
       {/* Task List */}
       <div className="space-y-4">
-        {tasks.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
-            Keine Aufgaben vorhanden. Füge eine neue Aufgabe hinzu!
-          </div>
-        ) : (
-          tasks.map(task => (
-            <div
-              key={task.id}
-              className={`p-6 rounded-xl border transform transition-all duration-300 hover:shadow-md ${
-                task.completed ? 'bg-gray-50 border-gray-200' : 'bg-white border-[#65C3BA]'
-              }`}
-            >
-              <div className="flex justify-between items-start mb-3">
-                <h3 className={`font-medium ${task.completed ? 'line-through text-gray-500' : 'text-[#4A3E4C]'}`}>
-                  {task.title}
-                </h3>
-                <div className="flex gap-2">
-                  {!task.completed && (
-                    <Button
-                      onClick={() => handleCompleteTask(task.id)}
-                      variant="outline"
-                      size="sm"
-                      className="text-green-600 hover:text-green-700"
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                    </Button>
-                  )}
-                  {task.completed && (
-                    <Button
-                      onClick={() => handleDeleteTask(task.id)}
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <div className="text-sm text-gray-500 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  {task.dueDate || 'Kein Datum'}
-                </div>
-                {task.quickActionMinutes && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    {task.quickActionMinutes} Minuten
-                  </div>
+        {tasks.map(task => (
+          <div
+            key={task.id}
+            className={`p-4 rounded-xl border ${
+              task.completed ? 'bg-gray-50 border-gray-200' : 'bg-white border-[#65C3BA]'
+            }`}
+          >
+            <div className="flex justify-between items-start mb-2">
+              <h3 className={`font-medium ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                {task.title}
+              </h3>
+              <div className="flex gap-2">
+                {!task.completed && (
+                  <Button
+                    onClick={() => handleCompleteTask(task.id)}
+                    variant="outline"
+                    size="sm"
+                    className="text-green-600 hover:text-green-700"
+                  >
+                    Erledigt
+                  </Button>
                 )}
-                <div className="text-xs text-gray-400">
-                  Zugewiesen an: {householdMembers.find(m => m.id === task.assignedTo)?.name || 'Unbekannt'}
-                </div>
+                {task.completed && (
+                  <Button
+                    onClick={() => handleDeleteTask(task.id)}
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
-          ))
-        )}
+            <div className="text-sm text-gray-500 space-y-1">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                {task.dueDate || 'Kein Datum'}
+              </div>
+              {task.quickActionMinutes && (
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  {task.quickActionMinutes} Minuten
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
