@@ -17,7 +17,7 @@ interface TaskListProps {
 
 export default function TaskList({ tasks, setTasks, householdMembers, currentUser }: TaskListProps) {
   const [newTask, setNewTask] = useState("")
-  const [selectedMember, setSelectedMember] = useState("")
+  const [selectedMember, setSelectedMember] = useState<string>("")
   const [dueDate, setDueDate] = useState("")
   const [quickActionMinutes, setQuickActionMinutes] = useState("")
 
