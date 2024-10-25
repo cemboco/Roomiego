@@ -1,18 +1,21 @@
 export interface Task {
   id: string
   title: string
-  assignedTo: string
-  createdBy: string
-  dueDate: string | null
-  quickActionMinutes: number | null
+  assigned_to: string
+  created_by: string
+  household_id: string
+  due_date: string | null
+  quick_action_minutes: number | null
   completed: boolean
-  startTime: string | null
+  start_time: string | null
+  completed_at: string | null
 }
 
 export interface UserProfile {
   id: string
-  name: string
+  full_name: string | null
   email: string
-  profilePicture?: string
+  avatar_url?: string
   points: number
+  household_id: string
 }
