@@ -21,6 +21,7 @@ export default function Signup() {
       setError("Passwörter stimmen nicht überein")
       return
     }
+
     try {
       // 1. Erstelle den Haushalt
       const { data: householdData, error: householdError } = await supabase
@@ -64,10 +65,10 @@ export default function Signup() {
 
       if (profileError) throw profileError
 
-      router.push("/email-confirmation")
-    } catch (error) {
+      router.push("/dashboard")
+    } catch (error: any) {
       console.error("Signup error:", error)
-      setError(error instanceof Error ? error.message : "Ein Fehler ist aufgetreten")
+      setError(error.message)
     }
   }
 
