@@ -21,6 +21,7 @@ interface TaskWithProfile {
   id: string
   title: string
   completed_at: string
+  assigned_to: string
   profile: {
     full_name: string | null
     email: string
@@ -54,7 +55,8 @@ export default function Statistics() {
             id,
             title,
             completed_at,
-            profile:assigned_to (
+            assigned_to,
+            profile:profiles!tasks_assigned_to_fkey (
               full_name,
               email
             )
@@ -65,7 +67,15 @@ export default function Statistics() {
 
         if (tasksError) throw tasksError
 
-        setTaskHistory(tasks || [])
+        const formattedTasks = tasks?.map(task => ({
+          ...task,
+          profile: {
+            full_name: task.profile?.full_name || null,
+            email: task.profile?.email || ''
+          }
+        })) || []
+
+        setTaskHistory(formattedTasks)
 
         // Fetch user statistics
         const { data: profilesData, error: profilesError } = await supabase
