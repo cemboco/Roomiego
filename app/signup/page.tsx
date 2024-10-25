@@ -23,7 +23,23 @@ export default function Signup() {
     }
 
     try {
-      // 1. Erstelle den Haushalt
+      // 1. Registriere den Benutzer
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            household_name: localStorage.getItem('householdName'),
+            household_type: localStorage.getItem('householdType'),
+            profile_picture: localStorage.getItem('profilePicture'),
+          }
+        }
+      })
+
+      if (signUpError) throw signUpError
+      if (!authData.user) throw new Error("Benutzer konnte nicht erstellt werden")
+
+      // 2. Erstelle den Haushalt
       const { data: householdData, error: householdError } = await supabase
         .from('households')
         .insert([{
@@ -34,22 +50,6 @@ export default function Signup() {
         .single()
 
       if (householdError) throw householdError
-
-      // 2. Registriere den Benutzer
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: localStorage.getItem('fullName'),
-            avatar_url: localStorage.getItem('profilePicture'),
-            household_id: householdData.id
-          }
-        }
-      })
-
-      if (signUpError) throw signUpError
-      if (!authData.user) throw new Error("Benutzer konnte nicht erstellt werden")
 
       // 3. Erstelle das Profil
       const { error: profileError } = await supabase
@@ -80,27 +80,27 @@ export default function Signup() {
           Erstelle dein Konto
         </h1>
         <form className="w-full" onSubmit={handleSignUp}>
-          <Input 
-            className="mb-4" 
-            type="email" 
-            placeholder="E-Mail-Adresse" 
-            required 
+          <Input
+            className="mb-4"
+            type="email"
+            placeholder="E-Mail-Adresse"
+            required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <Input 
-            className="mb-4" 
-            type="password" 
-            placeholder="Passwort erstellen" 
-            required 
+          <Input
+            className="mb-4"
+            type="password"
+            placeholder="Passwort erstellen"
+            required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <Input 
-            className="mb-4" 
-            type="password" 
-            placeholder="Passwort bestätigen" 
-            required 
+          <Input
+            className="mb-4"
+            type="password"
+            placeholder="Passwort bestätigen"
+            required
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
