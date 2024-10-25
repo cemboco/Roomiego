@@ -16,10 +16,6 @@ interface Household {
   type: 'wg' | 'family' | 'couple'
 }
 
-interface UserHouseholdData {
-  household: Household
-}
-
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [householdName, setHouseholdName] = useState("")
@@ -53,23 +49,11 @@ export default function Dashboard() {
 
         setUser(user)
 
-        // Get user's profile
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
-
-        if (profileError) {
-          console.error("Error fetching profile:", profileError)
-          return
-        }
-
-        // Get user's household
+        // Get user's profile and household in a single query
         const { data: userHousehold, error: householdError } = await supabase
           .from('user_households')
           .select(`
-            household:households (
+            households (
               id,
               name,
               type
@@ -83,8 +67,9 @@ export default function Dashboard() {
           return
         }
 
-        if (userHousehold?.household) {
-          setHouseholdName(userHousehold.household.name)
+        if (userHousehold?.households) {
+          const household = userHousehold.households as Household
+          setHouseholdName(household.name)
 
           // Fetch household members
           const { data: members, error: membersError } = await supabase
@@ -94,7 +79,7 @@ export default function Dashboard() {
               await supabase
                 .from('user_households')
                 .select('user_id')
-                .eq('household_id', userHousehold.household.id)
+                .eq('household_id', household.id)
             ).data?.map(uh => uh.user_id) || [])
 
           if (membersError) {
@@ -107,7 +92,7 @@ export default function Dashboard() {
           const { data: taskData, error: tasksError } = await supabase
             .from('tasks')
             .select('*')
-            .eq('household_id', userHousehold.household.id)
+            .eq('household_id', household.id)
             .order('created_at', { ascending: false })
 
           if (tasksError) {
