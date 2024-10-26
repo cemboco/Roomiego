@@ -13,22 +13,7 @@ export default function Signup() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
-  const [householdName, setHouseholdName] = useState(localStorage.getItem('householdName') || '')
-  const [householdType, setHouseholdType] = useState(localStorage.getItem('householdType') || '')
-  const [fullName, setFullName] = useState(localStorage.getItem('fullName') || '')
-  const [profilePicture, setProfilePicture] = useState(localStorage.getItem('profilePicture') || '')
   const router = useRouter()
-
-  const handleHouseholdData = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Speichern der Haushaltsdaten im Local Storage
-    localStorage.setItem('householdName', householdName)
-    localStorage.setItem('householdType', householdType)
-    localStorage.setItem('fullName', fullName)
-    localStorage.setItem('profilePicture', profilePicture)
-    // Weiterleitung zur Registrierungsseite
-    router.push('/signup-register')
-  }
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,10 +29,9 @@ export default function Signup() {
         password,
         options: {
           data: {
-            household_name: householdName,
-            household_type: householdType,
-            profile_picture: profilePicture,
-            full_name: fullName
+            household_name: localStorage.getItem('householdName'),
+            household_type: localStorage.getItem('householdType'),
+            profile_picture: localStorage.getItem('profilePicture'),
           }
         }
       })
@@ -59,8 +43,8 @@ export default function Signup() {
       const { data: householdData, error: householdError } = await supabase
         .from('households')
         .insert([{
-          name: householdName,
-          type: householdType
+          name: localStorage.getItem('householdName') || 'Mein Haushalt',
+          type: localStorage.getItem('householdType') || 'wg'
         }])
         .select()
         .single()
@@ -73,8 +57,8 @@ export default function Signup() {
         .insert([{
           id: authData.user.id,
           email: email,
-          full_name: fullName,
-          avatar_url: profilePicture,
+          full_name: localStorage.getItem('fullName'),
+          avatar_url: localStorage.getItem('profilePicture'),
           household_id: householdData.id,
           points: 0
         }])
@@ -95,68 +79,28 @@ export default function Signup() {
         <h1 className="text-2xl font-semibold text-primary mb-6 text-center">
           Erstelle dein Konto
         </h1>
-        {/* Haushaltsdaten eingeben */}
-        <form className="w-full" onSubmit={handleHouseholdData}>
-          <Input 
-            className="mb-4" 
-            type="text" 
-            placeholder="Haushaltsname" 
-            required 
-            value={householdName}
-            onChange={(e) => setHouseholdName(e.target.value)}
-          />
-          <Input 
-            className="mb-4" 
-            type="text" 
-            placeholder="Haushaltstyp" 
-            required 
-            value={householdType}
-            onChange={(e) => setHouseholdType(e.target.value)}
-          />
-          <Input 
-            className="mb-4" 
-            type="text" 
-            placeholder="Vollständiger Name" 
-            required 
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
-          <Input 
-            className="mb-4" 
-            type="text" 
-            placeholder="Profilbild-URL" 
-            required 
-            value={profilePicture}
-            onChange={(e) => setProfilePicture(e.target.value)}
-          />
-          <Button className="w-full bg-secondary hover:bg-secondary/90 text-white" type="submit">
-            <UserPlus className="mr-2 h-4 w-4" />
-            Weiter zur Registrierung
-          </Button>
-        </form>
-        {/* Registrierungsform */}
-        <form className="w-full mt-8" onSubmit={handleSignUp}>
-          <Input 
-            className="mb-4" 
-            type="email" 
-            placeholder="E-Mail-Adresse" 
-            required 
+        <form className="w-full" onSubmit={handleSignUp}>
+          <Input
+            className="mb-4"
+            type="email"
+            placeholder="E-Mail-Adresse"
+            required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <Input 
-            className="mb-4" 
-            type="password" 
-            placeholder="Passwort erstellen" 
-            required 
+          <Input
+            className="mb-4"
+            type="password"
+            placeholder="Passwort erstellen"
+            required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <Input 
-            className="mb-4" 
-            type="password" 
-            placeholder="Passwort bestätigen" 
-            required 
+          <Input
+            className="mb-4"
+            type="password"
+            placeholder="Passwort bestätigen"
+            required
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
@@ -173,5 +117,3 @@ export default function Signup() {
     </main>
   )
 }
-
-export default Signup;
