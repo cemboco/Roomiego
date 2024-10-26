@@ -28,7 +28,6 @@ export default function Signup() {
         email,
         password,
         options: {
-          redirectTo: 'https://roomiego.vercel.app/dashboard', // Hier wird die Redirect-URL angegeben
           data: {
             household_name: localStorage.getItem('householdName'),
             household_type: localStorage.getItem('householdType'),
@@ -66,6 +65,7 @@ export default function Signup() {
 
       if (profileError) throw profileError
 
+      // Leite den Benutzer auf das Dashboard um
       router.push("/dashboard")
     } catch (error: any) {
       console.error("Signup error:", error)
