@@ -23,11 +23,12 @@ export default function Signup() {
     }
 
     try {
-      // 1. Registriere den Benutzer
+      // Registriere den Benutzer
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          redirectTo: 'https://roomiego.vercel.app/dashboard', // Hier wird die Redirect-URL angegeben
           data: {
             household_name: localStorage.getItem('householdName'),
             household_type: localStorage.getItem('householdType'),
@@ -39,7 +40,7 @@ export default function Signup() {
       if (signUpError) throw signUpError
       if (!authData.user) throw new Error("Benutzer konnte nicht erstellt werden")
 
-      // 2. Erstelle den Haushalt
+      // Erstelle den Haushalt
       const { data: householdData, error: householdError } = await supabase
         .from('households')
         .insert([{
@@ -51,7 +52,7 @@ export default function Signup() {
 
       if (householdError) throw householdError
 
-      // 3. Erstelle das Profil
+      // Erstelle das Profil
       const { error: profileError } = await supabase
         .from('profiles')
         .insert([{
