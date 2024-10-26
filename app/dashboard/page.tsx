@@ -37,7 +37,7 @@ export default function Dashboard() {
 
         // Get current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        
+
         if (sessionError || !session) {
           router.replace("/login")
           return
@@ -45,7 +45,7 @@ export default function Dashboard() {
 
         // Get current user
         const { data: { user }, error: userError } = await supabase.auth.getUser()
-        
+
         if (userError || !user) {
           router.replace("/login")
           return
@@ -122,7 +122,7 @@ export default function Dashboard() {
         if (payload.eventType === 'INSERT') {
           setTasks(current => [payload.new as Task, ...current])
         } else if (payload.eventType === 'UPDATE') {
-          setTasks(current => current.map(task => 
+          setTasks(current => current.map(task =>
             task.id === payload.new.id ? payload.new as Task : task
           ))
         } else if (payload.eventType === 'DELETE') {
@@ -165,9 +165,9 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Tasks Section */}
           <div className="bg-white rounded-2xl shadow-lg p-8 transform transition-all duration-300 hover:shadow-xl">
-            <TaskList 
-              tasks={tasks} 
-              setTasks={setTasks} 
+            <TaskList
+              tasks={tasks}
+              setTasks={setTasks}
               householdMembers={householdMembers}
               currentUser={user}
             />
@@ -175,8 +175,8 @@ export default function Dashboard() {
 
           {/* Chat Section */}
           <div className="bg-white rounded-2xl shadow-lg p-8 transform transition-all duration-300 hover:shadow-xl">
-            <Chat 
-              householdMembers={householdMembers} 
+            <Chat
+              householdMembers={householdMembers}
               currentUser={user}
             />
           </div>
