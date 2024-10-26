@@ -16,14 +16,11 @@ interface Household {
   type: 'wg' | 'family' | 'couple'
 }
 
-interface UserHouseholdResponse {
-  households: Household
-}
-
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [householdName, setHouseholdName] = useState("")
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
   const [householdMembers, setHouseholdMembers] = useState<UserProfile[]>([])
   const router = useRouter()
@@ -35,25 +32,30 @@ export default function Dashboard() {
           throw new Error("Supabase client not initialized")
         }
 
-        // Get current session
+        console.log("Fetching session...")
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-        if (sessionError || !session) {
+        if (sessionError) throw sessionError
+        if (!session) {
+          console.log("No session found, redirecting to login")
           router.replace("/login")
           return
         }
 
-        // Get current user
+        console.log("Fetching user...")
         const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-        if (userError || !user) {
+        if (userError) throw userError
+        if (!user) {
+          console.log("No user found, redirecting to login")
           router.replace("/login")
           return
         }
 
+        console.log("User found:", user)
         setUser(user)
 
-        // Get user's profile and household in a single query
+        console.log("Fetching user's household...")
         const { data: userHousehold, error: householdError } = await supabase
           .from('user_households')
           .select(`
@@ -66,16 +68,14 @@ export default function Dashboard() {
           .eq('user_id', user.id)
           .single()
 
-        if (householdError) {
-          console.error("Error fetching household:", householdError)
-          return
-        }
+        if (householdError) throw householdError
 
         if (userHousehold?.households) {
           const household = userHousehold.households as unknown as Household
+          console.log("Household found:", household)
           setHouseholdName(household.name)
 
-          // Fetch household members
+          console.log("Fetching household members...")
           const { data: members, error: membersError } = await supabase
             .from('profiles')
             .select('*')
@@ -86,29 +86,28 @@ export default function Dashboard() {
                 .eq('household_id', household.id)
             ).data?.map(uh => uh.user_id) || [])
 
-          if (membersError) {
-            console.error("Error fetching household members:", membersError)
-          } else {
-            setHouseholdMembers(members || [])
-          }
+          if (membersError) throw membersError
+          console.log("Household members found:", members)
+          setHouseholdMembers(members || [])
 
-          // Fetch tasks
+          console.log("Fetching tasks...")
           const { data: taskData, error: tasksError } = await supabase
             .from('tasks')
             .select('*')
             .eq('household_id', household.id)
             .order('created_at', { ascending: false })
 
-          if (tasksError) {
-            console.error("Error fetching tasks:", tasksError)
-          } else {
-            setTasks(taskData || [])
-          }
+          if (tasksError) throw tasksError
+          console.log("Tasks found:", taskData)
+          setTasks(taskData || [])
+        } else {
+          console.log("No household found for user")
         }
 
-        setLoading(false)
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching data:", error)
+        setError(error.message)
+      } finally {
         setLoading(false)
       }
     }
@@ -119,6 +118,7 @@ export default function Dashboard() {
     const tasksSubscription = supabase
       ?.channel('tasks')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, payload => {
+        console.log("Task change detected:", payload)
         if (payload.eventType === 'INSERT') {
           setTasks(current => [payload.new as Task, ...current])
         } else if (payload.eventType === 'UPDATE') {
@@ -142,6 +142,28 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           <Loader2 className="h-6 w-6 animate-spin text-[#65C3BA]" />
           <span className="text-xl text-[#4A3E4C]">Laden...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#F0ECC9] to-white flex items-center justify-center">
+        <div className="text-red-500">
+          <h1 className="text-2xl font-bold">Ein Fehler ist aufgetreten</h1>
+          <p>{error}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user || !householdName) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#F0ECC9] to-white flex items-center justify-center">
+        <div className="text-[#4A3E4C]">
+          <h1 className="text-2xl font-bold">Keine Daten gefunden</h1>
+          <p>Bitte versuchen Sie, sich erneut anzumelden.</p>
         </div>
       </div>
     )
